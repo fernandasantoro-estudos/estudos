@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planejador de Estudos — Lista de Tarefas</title>
+<title>Planejador de Estudos — Uninter</title>
 <style>
   :root {
     --bg: #f4f5f7;
@@ -32,21 +32,6 @@
   }
   .wrap { max-width: 980px; margin: 0 auto; }
 
-  nav.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-  nav.tabs a {
-    flex: 1;
-    text-align: center;
-    padding: 10px 16px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--muted);
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
-  nav.tabs a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-
   header.top { margin-bottom: 20px; }
   header.top h1 { font-size: 22px; margin: 0 0 4px; }
   header.top p.sub { margin: 0; color: var(--muted); font-size: 13px; }
@@ -61,9 +46,14 @@
   .stat.overdue .num { color: var(--red); }
   .stat.today .num { color: var(--indigo); }
   .stat.done .num { color: var(--green); }
-
   .progress-outer { background: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 10px; }
   .progress-inner { background: linear-gradient(90deg, var(--accent), #818cf8); height: 100%; transition: width .3s ease; }
+
+  .today-banner {
+    background: var(--indigo-light); color: var(--indigo); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px; font-size: 13px; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
 
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
@@ -85,12 +75,6 @@
   .btn-primary:hover { background: #4338ca; }
   .btn-danger-text { background: transparent; color: var(--red); padding: 4px 8px; font-size: 12px; }
 
-  .today-banner {
-    background: var(--indigo-light); color: var(--indigo); border-radius: 12px;
-    padding: 12px 16px; margin-bottom: 16px; font-size: 13px; font-weight: 600;
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
-  }
-
   .add-form {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
     padding: 16px; margin-bottom: 16px; display: none;
@@ -102,6 +86,15 @@
     width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); font: inherit;
   }
   .add-form .aula-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; background: var(--accent-light); padding: 8px 10px; border-radius: 8px; }
+
+  nav.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  nav.tabs button.tab-btn {
+    flex: 1; text-align: center; padding: 10px 16px; border-radius: 10px;
+    font-weight: 600; font-size: 14px; color: var(--muted); background: var(--card); border: 1px solid var(--border);
+  }
+  nav.tabs button.tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 
   ul.task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .disc-heading {
@@ -117,16 +110,14 @@
   li.task.done { opacity: .55; }
   li.task.overdue { border-color: #fca5a5; background: #fff5f5; }
   li.task.conflict { border-color: #fcd34d; background: #fffbeb; }
-
   li.task input[type=checkbox] { width: 18px; height: 18px; margin-top: 3px; flex-shrink: 0; cursor: pointer; }
   .task-body { flex: 1; min-width: 0; }
   .task-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .disc-name { font-size: 11px; color: var(--muted); font-weight: 600; }
   .task-title { font-weight: 600; font-size: 14px; }
   li.task.done .task-title { text-decoration: line-through; }
 
-  .badge {
-    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
-  }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .badge.type-aula { background: #f1f5f9; color: #475569; }
   .badge.type-apol { background: #dbeafe; color: #1d4ed8; }
   .badge.type-apol-disc { background: #ede9fe; color: #6d28d9; }
@@ -138,13 +129,55 @@
   .badge.warn-today { background: var(--indigo-light); color: var(--indigo); }
 
   .task-meta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 12px; color: var(--muted); }
-  .task-meta .field { display: flex; align-items: center; gap: 4px; }
   .task-meta input[type=date] {
     padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); font: inherit; font-size: 12px;
   }
   .days-left { font-weight: 700; }
   .days-left.neg { color: var(--red); }
   .days-left.zero { color: var(--indigo); }
+
+  .disc-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .disc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .disc-head h2 { font-size: 16px; margin: 0 0 2px; }
+  .disc-head .count { font-size: 12px; color: var(--muted); }
+  .disc-head .today-count { font-size: 11px; color: var(--indigo); font-weight: 700; margin-left: 6px; }
+  .disc-pct { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .toggle-btn { margin-top: 10px; }
+
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px;
+  }
+  .cal-header h2 { margin: 0; font-size: 16px; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; padding-bottom: 4px; }
+  .cal-day {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    min-height: 78px; padding: 6px; cursor: pointer; display: flex; flex-direction: column; gap: 4px;
+  }
+  .cal-day.empty { background: transparent; border: none; cursor: default; }
+  .cal-day.today { border-color: var(--indigo); box-shadow: inset 0 0 0 1px var(--indigo); }
+  .cal-day.selected { background: var(--accent-light); border-color: var(--accent); }
+  .cal-day .num { font-size: 12px; font-weight: 700; color: var(--text); }
+  .cal-day.today .num { color: var(--indigo); }
+  .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; }
+  .cal-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .cal-dot.type-aula { background: #94a3b8; }
+  .cal-dot.type-apol { background: #2563eb; }
+  .cal-dot.type-apol-disc { background: #7c3aed; }
+  .cal-dot.type-prova-obj { background: #dc2626; }
+  .cal-dot.type-prova-disc { background: #be123c; }
+  .cal-dot.type-trabalho { background: #059669; }
+  .cal-day .overdue-mark { font-size: 10px; color: var(--red); font-weight: 700; }
+  .day-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 16px; }
+  .day-panel h3 { margin: 0 0 10px; font-size: 15px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
   .empty { text-align: center; color: var(--muted); padding: 40px 10px; font-size: 14px; }
   footer.saved { text-align: center; color: var(--muted); font-size: 11px; margin-top: 24px; }
@@ -159,31 +192,21 @@
   @media (max-width: 640px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
     .task-meta { gap: 10px; }
+    .cal-day { min-height: 56px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav class="tabs">
-    <a href="planejador_estudos.html" class="active">📋 Lista de Tarefas</a>
-    <a href="disciplinas.html">📚 Por Disciplina</a>
-    <a href="calendario.html">🗓️ Calendário</a>
-  </nav>
-
   <header class="top">
     <h1>Planejador de Estudos — Uninter</h1>
-    <p class="sub">Agrupado por disciplina: aulas em sequência, depois as atividades por data.</p>
+    <p class="sub">Lista, disciplinas e calendário, tudo em uma página só (sem depender de vários arquivos).</p>
   </header>
 
   <div class="stats" id="stats"></div>
-
   <div id="todayBanner"></div>
 
   <div class="toolbar">
-    <select id="filterDisc"></select>
-    <select id="filterType"></select>
-    <label class="chk"><input type="checkbox" id="filterToday"> Somente hoje</label>
-    <div class="spacer"></div>
     <button class="btn-secondary" id="btnToggleForm">+ Adicionar tarefa</button>
     <button class="btn-secondary" id="btnAdvance">Adiantar tudo 1 dia</button>
     <button class="btn-secondary" id="btnRestore">Restaurar plano original</button>
@@ -225,7 +248,53 @@
     <button class="btn-secondary" id="btnCancelTask">Cancelar</button>
   </div>
 
-  <ul class="task-list" id="taskList"></ul>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="list">📋 Lista de Tarefas</button>
+    <button class="tab-btn" data-tab="disc">📚 Por Disciplina</button>
+    <button class="tab-btn" data-tab="cal">🗓️ Calendário</button>
+  </nav>
+
+  <!-- ===== ABA: LISTA ===== -->
+  <div class="tab-panel active" id="panel-list">
+    <div class="toolbar">
+      <select id="filterDisc"></select>
+      <select id="filterType"></select>
+      <label class="chk"><input type="checkbox" id="filterToday"> Somente hoje</label>
+    </div>
+    <ul class="task-list" id="taskList"></ul>
+  </div>
+
+  <!-- ===== ABA: DISCIPLINAS ===== -->
+  <div class="tab-panel" id="panel-disc">
+    <div class="toolbar">
+      <select id="filterTypeDisc"></select>
+    </div>
+    <div id="discList"></div>
+  </div>
+
+  <!-- ===== ABA: CALENDÁRIO ===== -->
+  <div class="tab-panel" id="panel-cal">
+    <div class="cal-header">
+      <button class="btn-secondary" id="btnPrev">‹ Anterior</button>
+      <h2 id="calTitle"></h2>
+      <div class="cal-nav">
+        <button class="btn-secondary" id="btnTodayNav">Hoje</button>
+        <button class="btn-secondary" id="btnNext">Próximo ›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend">
+      <span><span class="cal-dot type-apol"></span> APOL Objetiva</span>
+      <span><span class="cal-dot type-apol-disc"></span> APOL/Exercício Discursiva</span>
+      <span><span class="cal-dot type-prova-obj"></span> Prova Objetiva</span>
+      <span><span class="cal-dot type-prova-disc"></span> Prova Discursiva</span>
+      <span><span class="cal-dot type-trabalho"></span> Trabalho/Pago</span>
+    </div>
+    <div class="day-panel" id="dayPanel" style="display:none;">
+      <h3 id="dayPanelTitle"></h3>
+      <ul class="task-list" id="dayTaskList"></ul>
+    </div>
+  </div>
 
   <footer class="saved" id="savedInfo"></footer>
 </div>
@@ -233,7 +302,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------- Constantes e dados ---------- */
+/* ================= Constantes e dados ================= */
 const STORAGE_KEY = 'uninterPlanner:v2';
 
 const DISCIPLINES = [
@@ -266,10 +335,10 @@ function mkActivity(id, disc, title, type, opens, planned, deadline, done) {
 // Dados iniciais de exemplo.
 // Comportamento Empreendedor: datas reais conferidas na tela de Avaliações da Uninter.
 // Demais disciplinas: aberturas estimadas (mesmo padrão de janela da Uninter) — ajuste quando
-// tiver os prints reais. Um item de exemplo (Design de Serviço) fica de propósito com a data
-// planejada depois do prazo, só para mostrar o aviso de "prazo ultrapassado" funcionando.
+// tiver os prints reais. Design de Serviço fica de propósito com a data planejada depois do
+// prazo, só para mostrar o aviso de "prazo ultrapassado" funcionando.
 function buildSeed() {
-  const seed = [
+  return [
     // Comportamento Empreendedor
     mkAula('ce-aula-1', DISCIPLINES[0], 'Aula 1', 1, true),
     mkAula('ce-aula-2', DISCIPLINES[0], 'Aula 2', 2, false),
@@ -329,10 +398,9 @@ function buildSeed() {
     mkActivity('ae-trab-3', DISCIPLINES[5], 'Relatório de atividades', 'trabalho', '2026-07-13', '2026-10-15', '2026-11-30', false),
     mkActivity('ae-trab-4', DISCIPLINES[5], 'Envio final da carga horária', 'trabalho', '2026-07-13', '2026-11-20', '2026-11-30', false)
   ];
-  return seed;
 }
 
-/* ---------- Utilitários de data ---------- */
+/* ================= Utilitários de data ================= */
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -348,8 +416,13 @@ function daysBetween(a, b) {
   const [by,bm,bd] = b.split('-').map(Number);
   return Math.round((new Date(by,bm-1,bd) - new Date(ay,am-1,ad)) / 86400000);
 }
+function fmtDate(s) {
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
 
-/* ---------- Persistência (localStorage) ---------- */
+/* ================= Persistência (localStorage) ================= */
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -369,24 +442,25 @@ function saveData(data) {
 
 let DATA = loadData();
 
-/* ---------- Regras derivadas ---------- */
+/* ================= Regras derivadas ================= */
 function effectiveDate(t) { return t.deadline || t.planned; }
 function isOverdue(t) { return !isAula(t) && !t.done && !!effectiveDate(t) && effectiveDate(t) < todayStr(); }
 function hasConflict(t) { return !isAula(t) && !!t.deadline && !!t.planned && t.planned > t.deadline; }
 function hasEarlyConflict(t) { return !isAula(t) && !!t.opens && !!t.planned && t.planned < t.opens; }
-function isToday(t) { return !isAula(t) && t.planned === todayStr(); }
+function isTodayTask(t) { return !isAula(t) && t.planned === todayStr(); }
 function daysLeftLabel(t) {
   const n = daysBetween(todayStr(), effectiveDate(t));
   if (n === 0) return { text: 'hoje', cls: 'zero' };
   if (n < 0) return { text: `há ${Math.abs(n)}d`, cls: 'neg' };
   return { text: `em ${n}d`, cls: '' };
 }
-function fmtDate(s) {
-  const [y,m,d] = s.split('-');
-  return `${d}/${m}/${y}`;
+function orderedTasksForDisc(tasks) {
+  const aulas = tasks.filter(isAula).sort((a,b) => a.order - b.order);
+  const activities = tasks.filter(t => !isAula(t)).sort((a,b) => (a.planned || '').localeCompare(b.planned || ''));
+  return [...aulas, ...activities];
 }
 
-/* ---------- Toast ---------- */
+/* ================= Toast ================= */
 let toastTimer = null;
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -396,38 +470,38 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-/* ---------- Filtros (em memória) ---------- */
-const filters = { disc: '', type: '', onlyToday: false };
+/* ================= Abas ================= */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+  });
+});
 
+/* ================= Selects compartilhados ================= */
 function populateSelects() {
-  const fDisc = document.getElementById('filterDisc');
-  fDisc.innerHTML = '<option value="">Todas as disciplinas</option>' +
-    DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join('');
+  const opts = (list, allLabel) => (allLabel ? `<option value="">${allLabel}</option>` : '') + list;
 
-  const fType = document.getElementById('filterType');
-  fType.innerHTML = '<option value="">Todos os tipos</option>' +
-    Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
-
-  const formDisc = document.getElementById('f-disc');
-  formDisc.innerHTML = DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join('');
-
-  const formType = document.getElementById('f-type');
-  formType.innerHTML = Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+  document.getElementById('filterDisc').innerHTML = opts(
+    DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join(''), 'Todas as disciplinas');
+  document.getElementById('filterType').innerHTML = opts(
+    Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join(''), 'Todos os tipos');
+  document.getElementById('filterTypeDisc').innerHTML = opts(
+    Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join(''), 'Todos os tipos');
+  document.getElementById('f-disc').innerHTML = DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join('');
+  document.getElementById('f-type').innerHTML = Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
 }
 
-/* ---------- Ordenação: aulas em sequência, depois atividades por data ---------- */
-function orderedTasksForDisc(tasks) {
-  const aulas = tasks.filter(isAula).sort((a,b) => a.order - b.order);
-  const activities = tasks.filter(t => !isAula(t)).sort((a,b) => (a.planned || '').localeCompare(b.planned || ''));
-  return [...aulas, ...activities];
-}
+/* ================= Stats + banner (compartilhados) ================= */
+const listFilters = { disc: '', type: '', onlyToday: false };
 
-/* ---------- Render ---------- */
 function renderStats() {
   const total = DATA.tasks.length;
   const done = DATA.tasks.filter(t => t.done).length;
   const overdue = DATA.tasks.filter(isOverdue).length;
-  const today = DATA.tasks.filter(t => !t.done && isToday(t)).length;
+  const today = DATA.tasks.filter(t => !t.done && isTodayTask(t)).length;
   const pct = total ? Math.round((done/total)*100) : 0;
 
   document.getElementById('stats').innerHTML = `
@@ -445,24 +519,26 @@ function renderStats() {
   if (today > 0) {
     banner.innerHTML = `<div class="today-banner">
       <span>📅 Hoje (${fmtDate(todayStr())}): ${today} tarefa${today>1?'s':''} planejada${today>1?'s':''}</span>
-      <label class="chk" style="font-weight:400;"><input type="checkbox" id="bannerFocus"> Mostrar só essas</label>
+      <label class="chk" style="font-weight:400;"><input type="checkbox" id="bannerFocus"> Mostrar só essas na Lista</label>
     </div>`;
-    document.getElementById('bannerFocus').checked = filters.onlyToday;
+    document.getElementById('bannerFocus').checked = listFilters.onlyToday;
     document.getElementById('bannerFocus').addEventListener('change', e => {
-      filters.onlyToday = e.target.checked;
+      listFilters.onlyToday = e.target.checked;
       document.getElementById('filterToday').checked = e.target.checked;
-      renderList();
+      renderListPanel();
     });
   } else {
     banner.innerHTML = '';
   }
 }
 
-function taskRowHtml(t) {
+/* ================= Linha de tarefa (compartilhada) ================= */
+function taskRowHtml(t, opts) {
+  opts = opts || {};
   const overdue = isOverdue(t);
   const conflict = hasConflict(t);
   const early = hasEarlyConflict(t);
-  const today = !t.done && isToday(t);
+  const today = !t.done && isTodayTask(t);
   const cls = ['task'];
   if (t.done) cls.push('done');
   else if (overdue) cls.push('overdue');
@@ -470,13 +546,13 @@ function taskRowHtml(t) {
 
   const metaParts = [];
   if (!isAula(t)) {
-    if (t.opens) metaParts.push(`<span class="field">Abre: ${fmtDate(t.opens)}</span>`);
-    metaParts.push(`<span class="field">Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>`);
-    if (t.deadline) metaParts.push(`<span class="field">Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>`);
+    if (t.opens) metaParts.push(`<span>Abre: ${fmtDate(t.opens)}</span>`);
+    metaParts.push(`<span>Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>`);
+    if (t.deadline) metaParts.push(`<span>Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>`);
     const dl = daysLeftLabel(t);
-    metaParts.push(`<span class="field days-left ${dl.cls}">${dl.text}</span>`);
+    metaParts.push(`<span class="days-left ${dl.cls}">${dl.text}</span>`);
   }
-  if (t.done && t.completedAt) metaParts.push(`<span class="field">Concluída em ${fmtDate(t.completedAt)}</span>`);
+  if (t.done && t.completedAt) metaParts.push(`<span>Concluída em ${fmtDate(t.completedAt)}</span>`);
   if (t.custom) metaParts.push(`<button class="btn-danger-text" data-del="${t.id}">Excluir</button>`);
 
   return `
@@ -484,6 +560,7 @@ function taskRowHtml(t) {
       <input type="checkbox" class="chk-done" data-id="${t.id}" ${t.done ? 'checked' : ''}>
       <div class="task-body">
         <div class="task-top">
+          ${opts.showDisc ? `<span class="disc-name">${t.disc}</span>` : ''}
           <span class="badge type-${t.type}">${TYPE_META[t.type].short}</span>
           ${overdue ? '<span class="badge warn-overdue">⚠ Atrasada</span>' : ''}
           ${conflict ? '<span class="badge warn-conflict">⚠ Prazo ultrapassado</span>' : ''}
@@ -497,30 +574,8 @@ function taskRowHtml(t) {
   `;
 }
 
-function renderList() {
-  const list = document.getElementById('taskList');
-
-  let tasks = [...DATA.tasks];
-  if (filters.disc) tasks = tasks.filter(t => t.disc === filters.disc);
-  if (filters.type) tasks = tasks.filter(t => t.type === filters.type);
-  if (filters.onlyToday) tasks = tasks.filter(t => !t.done && isToday(t));
-
-  if (tasks.length === 0) {
-    list.innerHTML = '<div class="empty">Nenhuma tarefa encontrada com esses filtros.</div>';
-    return;
-  }
-
-  const discsToShow = filters.disc ? [filters.disc] : DISCIPLINES;
-  let html = '';
-  discsToShow.forEach(disc => {
-    const discTasks = orderedTasksForDisc(tasks.filter(t => t.disc === disc));
-    if (discTasks.length === 0) return;
-    html += `<div class="disc-heading">${disc}</div>`;
-    html += discTasks.map(taskRowHtml).join('');
-  });
-  list.innerHTML = html || '<div class="empty">Nenhuma tarefa encontrada com esses filtros.</div>';
-
-  list.querySelectorAll('.chk-done').forEach(cb => {
+function bindTaskRowEvents(container) {
+  container.querySelectorAll('.chk-done').forEach(cb => {
     cb.addEventListener('change', e => {
       const id = e.target.dataset.id;
       const t = DATA.tasks.find(x => x.id === id);
@@ -530,7 +585,7 @@ function renderList() {
       renderAll();
     });
   });
-  list.querySelectorAll('.inp-planned').forEach(inp => {
+  container.querySelectorAll('.inp-planned').forEach(inp => {
     inp.addEventListener('change', e => {
       const id = e.target.dataset.id;
       const t = DATA.tasks.find(x => x.id === id);
@@ -539,7 +594,7 @@ function renderList() {
       renderAll();
     });
   });
-  list.querySelectorAll('[data-del]').forEach(btn => {
+  container.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', e => {
       const id = e.target.dataset.del;
       DATA.tasks = DATA.tasks.filter(x => x.id !== id);
@@ -550,6 +605,144 @@ function renderList() {
   });
 }
 
+/* ================= Aba: Lista ================= */
+function renderListPanel() {
+  const list = document.getElementById('taskList');
+
+  let tasks = [...DATA.tasks];
+  if (listFilters.disc) tasks = tasks.filter(t => t.disc === listFilters.disc);
+  if (listFilters.type) tasks = tasks.filter(t => t.type === listFilters.type);
+  if (listFilters.onlyToday) tasks = tasks.filter(t => !t.done && isTodayTask(t));
+
+  const discsToShow = listFilters.disc ? [listFilters.disc] : DISCIPLINES;
+  let html = '';
+  discsToShow.forEach(disc => {
+    const discTasks = orderedTasksForDisc(tasks.filter(t => t.disc === disc));
+    if (discTasks.length === 0) return;
+    html += `<div class="disc-heading">${disc}</div>`;
+    html += discTasks.map(t => taskRowHtml(t, { showDisc: false })).join('');
+  });
+  list.innerHTML = html || '<div class="empty">Nenhuma tarefa encontrada com esses filtros.</div>';
+  bindTaskRowEvents(list);
+}
+
+/* ================= Aba: Disciplinas ================= */
+const discState = { type: '', expanded: new Set() };
+
+function renderDiscPanel() {
+  const container = document.getElementById('discList');
+
+  container.innerHTML = DISCIPLINES.map(disc => {
+    let tasks = DATA.tasks.filter(t => t.disc === disc);
+    if (discState.type) tasks = tasks.filter(t => t.type === discState.type);
+    tasks = orderedTasksForDisc(tasks);
+
+    const allTasks = DATA.tasks.filter(t => t.disc === disc);
+    const total = allTasks.length;
+    const done = allTasks.filter(t => t.done).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    const todayCount = allTasks.filter(t => !t.done && isTodayTask(t)).length;
+    const isOpen = discState.expanded.has(disc);
+
+    return `
+      <div class="disc-card" data-disc="${disc}">
+        <div class="disc-head">
+          <div>
+            <h2>${disc}</h2>
+            <span class="count">${done}/${total} concluídas${todayCount ? `<span class="today-count">· ${todayCount} hoje</span>` : ''}</span>
+          </div>
+          <div class="disc-pct">${pct}%</div>
+        </div>
+        <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+        <button class="btn-secondary toggle-btn" data-toggle="${disc}">${isOpen ? 'Ocultar tarefas ▴' : 'Ver tarefas ▾'}</button>
+        ${isOpen ? `<ul class="task-list">${tasks.length ? tasks.map(t => taskRowHtml(t, { showDisc: false })).join('') : '<li style="color:var(--muted); font-size:13px; padding:8px;">Nenhuma tarefa com esse filtro.</li>'}</ul>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const disc = e.target.dataset.toggle;
+      if (discState.expanded.has(disc)) discState.expanded.delete(disc); else discState.expanded.add(disc);
+      renderDiscPanel();
+    });
+  });
+  bindTaskRowEvents(container);
+}
+
+/* ================= Aba: Calendário ================= */
+const nowRef = new Date();
+const calState = { year: nowRef.getFullYear(), month: nowRef.getMonth(), selectedDate: todayStr() };
+const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const DOW_NAMES = ['dom','seg','ter','qua','qui','sex','sáb'];
+
+function tasksByDate() {
+  const map = {};
+  DATA.tasks.forEach(t => {
+    if (isAula(t) || !t.planned) return;
+    (map[t.planned] = map[t.planned] || []).push(t);
+  });
+  return map;
+}
+
+function renderCalPanel() {
+  const monthName = MONTH_NAMES[calState.month];
+  document.getElementById('calTitle').textContent = `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)} de ${calState.year}`;
+
+  const grid = document.getElementById('calGrid');
+  const byDate = tasksByDate();
+
+  let html = DOW_NAMES.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(calState.year, calState.month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calState.year}-${pad2(calState.month+1)}-${pad2(day)}`;
+    const dayTasks = byDate[dateStr] || [];
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === calState.selectedDate;
+    const hasOverdue = dayTasks.some(isOverdue);
+    const dots = dayTasks.slice(0, 8).map(t => `<span class="cal-dot type-${t.type}"></span>`).join('');
+
+    html += `
+      <div class="cal-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateStr}">
+        <div class="num">${day}</div>
+        <div class="cal-dots">${dots}</div>
+        ${hasOverdue ? '<div class="overdue-mark">⚠ atrasada</div>' : ''}
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cal-day[data-date]').forEach(el => {
+    el.addEventListener('click', () => {
+      calState.selectedDate = el.dataset.date;
+      renderCalPanel();
+      renderDayPanel();
+    });
+  });
+}
+
+function renderDayPanel() {
+  const panel = document.getElementById('dayPanel');
+  const byDate = tasksByDate();
+  const tasks = (byDate[calState.selectedDate] || []).sort((a,b) => a.title.localeCompare(b.title));
+
+  panel.style.display = 'block';
+  document.getElementById('dayPanelTitle').textContent = `${fmtDate(calState.selectedDate)}${calState.selectedDate === todayStr() ? ' (hoje)' : ''}`;
+
+  const list = document.getElementById('dayTaskList');
+  list.innerHTML = tasks.length
+    ? tasks.map(t => taskRowHtml(t, { showDisc: true })).join('')
+    : '<div class="empty">Nenhuma atividade planejada para esse dia.</div>';
+  bindTaskRowEvents(list);
+}
+
+/* ================= Info de salvamento ================= */
 function renderSavedInfo() {
   const el = document.getElementById('savedInfo');
   if (!DATA.updatedAt) { el.textContent = ''; return; }
@@ -559,15 +752,39 @@ function renderSavedInfo() {
 
 function renderAll() {
   renderStats();
-  renderList();
+  renderListPanel();
+  renderDiscPanel();
+  renderCalPanel();
+  renderDayPanel();
   renderSavedInfo();
 }
 
-/* ---------- Ações ---------- */
-document.getElementById('filterDisc').addEventListener('change', e => { filters.disc = e.target.value; renderList(); });
-document.getElementById('filterType').addEventListener('change', e => { filters.type = e.target.value; renderList(); });
-document.getElementById('filterToday').addEventListener('change', e => { filters.onlyToday = e.target.checked; renderList(); });
+/* ================= Ações: filtros ================= */
+document.getElementById('filterDisc').addEventListener('change', e => { listFilters.disc = e.target.value; renderListPanel(); });
+document.getElementById('filterType').addEventListener('change', e => { listFilters.type = e.target.value; renderListPanel(); });
+document.getElementById('filterToday').addEventListener('change', e => { listFilters.onlyToday = e.target.checked; renderListPanel(); });
+document.getElementById('filterTypeDisc').addEventListener('change', e => { discState.type = e.target.value; renderDiscPanel(); });
 
+/* ================= Ações: calendário ================= */
+document.getElementById('btnPrev').addEventListener('click', () => {
+  calState.month--;
+  if (calState.month < 0) { calState.month = 11; calState.year--; }
+  renderCalPanel();
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  calState.month++;
+  if (calState.month > 11) { calState.month = 0; calState.year++; }
+  renderCalPanel();
+});
+document.getElementById('btnTodayNav').addEventListener('click', () => {
+  calState.year = nowRef.getFullYear();
+  calState.month = nowRef.getMonth();
+  calState.selectedDate = todayStr();
+  renderCalPanel();
+  renderDayPanel();
+});
+
+/* ================= Ações: formulário de nova tarefa ================= */
 document.getElementById('btnToggleForm').addEventListener('click', () => {
   const form = document.getElementById('addForm');
   form.classList.toggle('open');
@@ -613,13 +830,13 @@ document.getElementById('btnSaveTask').addEventListener('click', () => {
   showToast('Tarefa adicionada.');
 });
 
+/* ================= Ações: adiantar / restaurar ================= */
 document.getElementById('btnAdvance').addEventListener('click', () => {
   DATA.tasks.forEach(t => { if (!t.done && t.planned) t.planned = addDays(t.planned, -1); });
   saveData(DATA);
   renderAll();
   showToast('Datas planejadas adiantadas em 1 dia.');
 });
-
 document.getElementById('btnRestore').addEventListener('click', () => {
   if (!confirm('Restaurar todas as datas planejadas para o plano original? Isso não afeta o status de concluído nem tarefas adicionadas manualmente.')) return;
   DATA.tasks.forEach(t => { if (t.originalPlanned) t.planned = t.originalPlanned; });
@@ -628,7 +845,7 @@ document.getElementById('btnRestore').addEventListener('click', () => {
   showToast('Plano original restaurado.');
 });
 
-/* ---------- Init ---------- */
+/* ================= Init ================= */
 populateSelects();
 renderAll();
 </script>
