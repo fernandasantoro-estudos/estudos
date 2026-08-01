@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planejador de Estudos — Por Disciplina</title>
+<title>Planejador de Estudos — Calendário</title>
 <style>
   :root {
     --bg: #f4f5f7;
@@ -61,50 +61,57 @@
   .stat.overdue .num { color: var(--red); }
   .stat.today .num { color: var(--indigo); }
   .stat.done .num { color: var(--green); }
-
   .progress-outer { background: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 10px; }
   .progress-inner { background: linear-gradient(90deg, var(--accent), #818cf8); height: 100%; transition: width .3s ease; }
 
-  .toolbar {
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px; margin-bottom: 16px;
-  }
-  .toolbar select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: 13px; }
-  .toolbar .spacer { flex: 1; }
   button {
     font: inherit; cursor: pointer; border: none; border-radius: 8px; padding: 8px 14px;
     font-size: 13px; font-weight: 600;
   }
-  .btn-primary { background: var(--accent); color: #fff; }
   .btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { background: #f9fafb; }
-  .btn-primary:hover { background: #4338ca; }
   .btn-danger-text { background: transparent; color: var(--red); padding: 4px 8px; font-size: 12px; }
 
-  .add-form {
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px; margin-bottom: 16px; display: none;
+    padding: 12px 16px; margin-bottom: 16px;
   }
-  .add-form.open { display: block; }
-  .add-form .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
-  .add-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .add-form input, .add-form select {
-    width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); font: inherit;
-  }
-  .add-form .aula-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; background: var(--accent-light); padding: 8px 10px; border-radius: 8px; }
+  .cal-header h2 { margin: 0; font-size: 16px; }
+  .cal-nav { display: flex; gap: 6px; }
 
-  .disc-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 16px; margin-bottom: 12px;
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
   }
-  .disc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .disc-head h2 { font-size: 16px; margin: 0 0 2px; }
-  .disc-head .count { font-size: 12px; color: var(--muted); }
-  .disc-head .today-count { font-size: 11px; color: var(--indigo); font-weight: 700; margin-left: 6px; }
-  .disc-pct { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .cal-dow {
+    text-align: center; font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; padding-bottom: 4px;
+  }
+  .cal-day {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    min-height: 78px; padding: 6px; cursor: pointer; display: flex; flex-direction: column; gap: 4px;
+  }
+  .cal-day.empty { background: transparent; border: none; cursor: default; }
+  .cal-day.today { border-color: var(--indigo); box-shadow: inset 0 0 0 1px var(--indigo); }
+  .cal-day.selected { background: var(--accent-light); border-color: var(--accent); }
+  .cal-day .num { font-size: 12px; font-weight: 700; color: var(--text); }
+  .cal-day.today .num { color: var(--indigo); }
+  .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; }
+  .cal-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .cal-dot.type-aula { background: #94a3b8; }
+  .cal-dot.type-apol { background: #2563eb; }
+  .cal-dot.type-apol-disc { background: #7c3aed; }
+  .cal-dot.type-prova-obj { background: #dc2626; }
+  .cal-dot.type-prova-disc { background: #be123c; }
+  .cal-dot.type-trabalho { background: #059669; }
+  .cal-day .overdue-mark { font-size: 10px; color: var(--red); font-weight: 700; }
 
-  ul.task-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .day-panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-top: 16px;
+  }
+  .day-panel h3 { margin: 0 0 10px; font-size: 15px; }
+  ul.task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   li.task {
     background: #fafafa; border: 1px solid var(--border); border-radius: 10px;
     padding: 10px 12px; display: flex; align-items: flex-start; gap: 10px;
@@ -115,13 +122,10 @@
   li.task input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
   .task-body { flex: 1; min-width: 0; }
   .task-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .disc-name { font-size: 11px; color: var(--muted); font-weight: 600; }
   .task-title { font-weight: 600; font-size: 13px; }
   li.task.done .task-title { text-decoration: line-through; }
   .task-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 11px; color: var(--muted); }
-  .task-meta input[type=date] { padding: 2px 5px; border-radius: 6px; border: 1px solid var(--border); font: inherit; font-size: 11px; }
-  .days-left { font-weight: 700; }
-  .days-left.neg { color: var(--red); }
-  .days-left.zero { color: var(--indigo); }
 
   .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
   .badge.type-aula { background: #f1f5f9; color: #475569; }
@@ -132,20 +136,16 @@
   .badge.type-trabalho { background: #d1fae5; color: #047857; }
   .badge.warn-overdue { background: var(--red-light); color: var(--red); }
   .badge.warn-conflict { background: var(--amber-light); color: var(--amber); }
-  .badge.warn-today { background: var(--indigo-light); color: var(--indigo); }
 
-  .toggle-btn { margin-top: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+  .empty { text-align: center; color: var(--muted); padding: 20px 10px; font-size: 13px; }
   footer.saved { text-align: center; color: var(--muted); font-size: 11px; margin-top: 24px; }
-
-  .toast {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #1f2430; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px;
-    opacity: 0; pointer-events: none; transition: all .25s ease; z-index: 50;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 640px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
+    .cal-day { min-height: 56px; }
   }
 </style>
 </head>
@@ -153,70 +153,46 @@
 <div class="wrap">
   <nav class="tabs">
     <a href="planejador_estudos.html">📋 Lista de Tarefas</a>
-    <a href="disciplinas.html" class="active">📚 Por Disciplina</a>
-    <a href="calendario.html">🗓️ Calendário</a>
+    <a href="disciplinas.html">📚 Por Disciplina</a>
+    <a href="calendario.html" class="active">🗓️ Calendário</a>
   </nav>
 
   <header class="top">
     <h1>Planejador de Estudos — Uninter</h1>
-    <p class="sub">Progresso agrupado por disciplina: aulas em sequência, depois as atividades.</p>
+    <p class="sub">Calendário das atividades (aulas não têm data e não aparecem aqui).</p>
   </header>
 
   <div class="stats" id="stats"></div>
 
-  <div class="toolbar">
-    <select id="filterType"></select>
-    <div class="spacer"></div>
-    <button class="btn-secondary" id="btnToggleForm">+ Adicionar tarefa</button>
-    <button class="btn-secondary" id="btnAdvance">Adiantar tudo 1 dia</button>
-    <button class="btn-secondary" id="btnRestore">Restaurar plano original</button>
+  <div class="cal-header">
+    <button class="btn-secondary" id="btnPrev">‹ Anterior</button>
+    <h2 id="calTitle"></h2>
+    <div class="cal-nav">
+      <button class="btn-secondary" id="btnTodayNav">Hoje</button>
+      <button class="btn-secondary" id="btnNext">Próximo ›</button>
+    </div>
   </div>
 
-  <div class="add-form" id="addForm">
-    <div class="grid">
-      <div>
-        <label>Disciplina</label>
-        <select id="f-disc"></select>
-      </div>
-      <div>
-        <label>Tipo</label>
-        <select id="f-type"></select>
-      </div>
-      <div>
-        <label>Título</label>
-        <input type="text" id="f-title" placeholder="Ex: Leitura do capítulo 3">
-      </div>
-    </div>
-    <div class="aula-note" id="aulaNote" style="display:none;">
-      Aulas não têm data — esta será adicionada como a próxima da sequência da disciplina.
-    </div>
-    <div class="grid" id="dateFields">
-      <div>
-        <label>Abre em (opcional)</label>
-        <input type="date" id="f-opens">
-      </div>
-      <div>
-        <label>Data planejada</label>
-        <input type="date" id="f-planned">
-      </div>
-      <div>
-        <label>Prazo real (opcional)</label>
-        <input type="date" id="f-deadline">
-      </div>
-    </div>
-    <button class="btn-primary" id="btnSaveTask">Salvar tarefa</button>
-    <button class="btn-secondary" id="btnCancelTask">Cancelar</button>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div class="legend">
+    <span><span class="cal-dot type-apol"></span> APOL Objetiva</span>
+    <span><span class="cal-dot type-apol-disc"></span> APOL/Exercício Discursiva</span>
+    <span><span class="cal-dot type-prova-obj"></span> Prova Objetiva</span>
+    <span><span class="cal-dot type-prova-disc"></span> Prova Discursiva</span>
+    <span><span class="cal-dot type-trabalho"></span> Trabalho/Pago</span>
   </div>
 
-  <div id="discList"></div>
+  <div class="day-panel" id="dayPanel" style="display:none;">
+    <h3 id="dayPanelTitle"></h3>
+    <ul class="task-list" id="dayTaskList"></ul>
+  </div>
 
   <footer class="saved" id="savedInfo"></footer>
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script>
-/* ---------- Constantes e dados (mesmo modelo do planejador_estudos.html) ---------- */
+/* ---------- Constantes e dados (mesmo modelo das outras páginas) ---------- */
 const STORAGE_KEY = 'uninterPlanner:v2';
 
 const DISCIPLINES = [
@@ -240,15 +216,14 @@ const TYPE_META = {
 function isAula(t) { return t.type === 'aula'; }
 
 function mkAula(id, disc, title, order, done) {
-  return { id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: !!done, custom: false };
+  return { id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: !!done, completedAt: null, custom: false };
 }
 function mkActivity(id, disc, title, type, opens, planned, deadline, done) {
-  return { id, disc, title, type, order: null, opens: opens || null, deadline: deadline || null, planned, originalPlanned: planned, done: !!done, custom: false };
+  return { id, disc, title, type, order: null, opens: opens || null, deadline: deadline || null, planned, originalPlanned: planned, done: !!done, completedAt: null, custom: false };
 }
 
 function buildSeed() {
   const seed = [
-    // Comportamento Empreendedor
     mkAula('ce-aula-1', DISCIPLINES[0], 'Aula 1', 1, true),
     mkAula('ce-aula-2', DISCIPLINES[0], 'Aula 2', 2, false),
     mkAula('ce-aula-3', DISCIPLINES[0], 'Aula 3', 3, false),
@@ -261,7 +236,6 @@ function buildSeed() {
     mkActivity('ce-prova-obj', DISCIPLINES[0], 'Prova Objetiva', 'prova-obj', '2026-08-24', '2026-09-12', '2026-09-14', false),
     mkActivity('ce-prova-disc', DISCIPLINES[0], 'Prova Discursiva', 'prova-disc', '2026-08-24', '2026-09-13', '2026-09-14', false),
 
-    // Design Cultura e Sociedade
     mkAula('dcs-aula-1', DISCIPLINES[1], 'Aula 1', 1, false),
     mkAula('dcs-aula-2', DISCIPLINES[1], 'Aula 2', 2, false),
     mkAula('dcs-aula-3', DISCIPLINES[1], 'Aula 3', 3, false),
@@ -271,7 +245,6 @@ function buildSeed() {
     mkActivity('dcs-prova-obj', DISCIPLINES[1], 'Prova Objetiva', 'prova-obj', '2026-08-30', '2026-09-20', '2026-09-25', false),
     mkActivity('dcs-prova-disc', DISCIPLINES[1], 'Prova Discursiva', 'prova-disc', '2026-08-30', '2026-09-21', '2026-09-25', false),
 
-    // Design de Serviço
     mkAula('ds-aula-1', DISCIPLINES[2], 'Aula 1', 1, false),
     mkAula('ds-aula-2', DISCIPLINES[2], 'Aula 2', 2, false),
     mkAula('ds-aula-3', DISCIPLINES[2], 'Aula 3', 3, false),
@@ -281,7 +254,6 @@ function buildSeed() {
     mkActivity('ds-prova-obj', DISCIPLINES[2], 'Prova Objetiva', 'prova-obj', '2026-09-03', '2026-09-28', '2026-10-02', false),
     mkActivity('ds-prova-disc', DISCIPLINES[2], 'Prova Discursiva', 'prova-disc', '2026-09-03', '2026-09-29', '2026-10-02', false),
 
-    // Processos do Design Thinking
     mkAula('pdt-aula-1', DISCIPLINES[3], 'Aula 1', 1, false),
     mkAula('pdt-aula-2', DISCIPLINES[3], 'Aula 2', 2, false),
     mkAula('pdt-aula-3', DISCIPLINES[3], 'Aula 3', 3, false),
@@ -291,7 +263,6 @@ function buildSeed() {
     mkActivity('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-09-05', '2026-10-05', '2026-10-10', false),
     mkActivity('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-09-05', '2026-10-06', '2026-10-10', false),
 
-    // Teoria da Cor
     mkAula('tc-aula-1', DISCIPLINES[4], 'Aula 1', 1, false),
     mkAula('tc-aula-2', DISCIPLINES[4], 'Aula 2', 2, false),
     mkAula('tc-aula-3', DISCIPLINES[4], 'Aula 3', 3, false),
@@ -301,7 +272,6 @@ function buildSeed() {
     mkActivity('tc-prova-obj', DISCIPLINES[4], 'Prova Objetiva', 'prova-obj', '2026-09-08', '2026-10-12', '2026-10-17', false),
     mkActivity('tc-prova-disc', DISCIPLINES[4], 'Prova Discursiva', 'prova-disc', '2026-09-08', '2026-10-13', '2026-10-17', false),
 
-    // Atividades Extensionistas (sem aulas — só entregas)
     mkActivity('ae-trab-1', DISCIPLINES[5], 'Certificado de curso 1', 'trabalho', '2026-07-13', '2026-08-15', '2026-11-30', false),
     mkActivity('ae-trab-2', DISCIPLINES[5], 'Certificado de curso 2', 'trabalho', '2026-07-13', '2026-09-15', '2026-11-30', false),
     mkActivity('ae-trab-3', DISCIPLINES[5], 'Relatório de atividades', 'trabalho', '2026-07-13', '2026-10-15', '2026-11-30', false),
@@ -315,17 +285,16 @@ function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function addDays(dateStr, delta) {
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m-1, d);
-  dt.setDate(dt.getDate() + delta);
-  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-}
 function daysBetween(a, b) {
   const [ay,am,ad] = a.split('-').map(Number);
   const [by,bm,bd] = b.split('-').map(Number);
   return Math.round((new Date(by,bm-1,bd) - new Date(ay,am-1,ad)) / 86400000);
 }
+function fmtDate(s) {
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
 
 /* ---------- Persistência (localStorage) ---------- */
 function loadData() {
@@ -353,56 +322,22 @@ function isOverdue(t) { return !isAula(t) && !t.done && !!effectiveDate(t) && ef
 function hasConflict(t) { return !isAula(t) && !!t.deadline && !!t.planned && t.planned > t.deadline; }
 function hasEarlyConflict(t) { return !isAula(t) && !!t.opens && !!t.planned && t.planned < t.opens; }
 function isToday(t) { return !isAula(t) && t.planned === todayStr(); }
-function daysLeftLabel(t) {
-  const n = daysBetween(todayStr(), effectiveDate(t));
-  if (n === 0) return { text: 'hoje', cls: 'zero' };
-  if (n < 0) return { text: `há ${Math.abs(n)}d`, cls: 'neg' };
-  return { text: `em ${n}d`, cls: '' };
-}
-function fmtDate(s) {
-  const [y,m,d] = s.split('-');
-  return `${d}/${m}/${y}`;
-}
 
-/* ---------- Toast ---------- */
-let toastTimer = null;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
-}
+/* ---------- Estado do calendário ---------- */
+const today = new Date();
+let viewYear = today.getFullYear();
+let viewMonth = today.getMonth(); // 0-11
+let selectedDate = todayStr();
 
-/* ---------- Estado de UI (em memória) ---------- */
-const filters = { type: '' };
-const expanded = new Set();
-
-function populateSelects() {
-  const fType = document.getElementById('filterType');
-  fType.innerHTML = '<option value="">Todos os tipos</option>' +
-    Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
-
-  const formDisc = document.getElementById('f-disc');
-  formDisc.innerHTML = DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join('');
-
-  const formType = document.getElementById('f-type');
-  formType.innerHTML = Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
-}
-
-/* ---------- Ordenação: aulas em sequência, depois atividades por data ---------- */
-function orderedTasksForDisc(tasks) {
-  const aulas = tasks.filter(isAula).sort((a,b) => a.order - b.order);
-  const activities = tasks.filter(t => !isAula(t)).sort((a,b) => (a.planned || '').localeCompare(b.planned || ''));
-  return [...aulas, ...activities];
-}
+const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const DOW_NAMES = ['dom','seg','ter','qua','qui','sex','sáb'];
 
 /* ---------- Render ---------- */
 function renderStats() {
   const total = DATA.tasks.length;
   const done = DATA.tasks.filter(t => t.done).length;
   const overdue = DATA.tasks.filter(isOverdue).length;
-  const today = DATA.tasks.filter(t => !t.done && isToday(t)).length;
+  const todayCount = DATA.tasks.filter(t => !t.done && isToday(t)).length;
   const pct = total ? Math.round((done/total)*100) : 0;
 
   document.getElementById('stats').innerHTML = `
@@ -413,41 +348,86 @@ function renderStats() {
     </div>
     <div class="stat done"><div class="num">${done}/${total}</div><div class="label">Concluídas</div></div>
     <div class="stat overdue"><div class="num">${overdue}</div><div class="label">Atrasadas</div></div>
-    <div class="stat today"><div class="num">${today}</div><div class="label">Para hoje</div></div>
+    <div class="stat today"><div class="num">${todayCount}</div><div class="label">Para hoje</div></div>
   `;
+}
+
+function tasksByDate() {
+  const map = {};
+  DATA.tasks.forEach(t => {
+    if (isAula(t) || !t.planned) return;
+    (map[t.planned] = map[t.planned] || []).push(t);
+  });
+  return map;
+}
+
+function renderCalendar() {
+  const monthName = MONTH_NAMES[viewMonth];
+  document.getElementById('calTitle').textContent = `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)} de ${viewYear}`;
+
+  const grid = document.getElementById('calGrid');
+  const byDate = tasksByDate();
+
+  let html = DOW_NAMES.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${viewYear}-${pad2(viewMonth+1)}-${pad2(day)}`;
+    const dayTasks = byDate[dateStr] || [];
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === selectedDate;
+    const hasOverdue = dayTasks.some(isOverdue);
+
+    const dots = dayTasks.slice(0, 8).map(t => `<span class="cal-dot type-${t.type}"></span>`).join('');
+
+    html += `
+      <div class="cal-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateStr}">
+        <div class="num">${day}</div>
+        <div class="cal-dots">${dots}</div>
+        ${hasOverdue ? '<div class="overdue-mark">⚠ atrasada</div>' : ''}
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cal-day[data-date]').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedDate = el.dataset.date;
+      renderCalendar();
+      renderDayPanel();
+    });
+  });
 }
 
 function taskRowHtml(t) {
   const overdue = isOverdue(t);
   const conflict = hasConflict(t);
   const early = hasEarlyConflict(t);
-  const today = !t.done && isToday(t);
   const cls = ['task'];
   if (t.done) cls.push('done');
   else if (overdue) cls.push('overdue');
   else if (conflict || early) cls.push('conflict');
 
   const metaParts = [];
-  if (!isAula(t)) {
-    if (t.opens) metaParts.push(`<span>Abre: ${fmtDate(t.opens)}</span>`);
-    metaParts.push(`<span>Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>`);
-    if (t.deadline) metaParts.push(`<span>Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>`);
-    const dl = daysLeftLabel(t);
-    metaParts.push(`<span class="days-left ${dl.cls}">${dl.text}</span>`);
-  }
+  if (t.opens) metaParts.push(`<span>Abre: ${fmtDate(t.opens)}</span>`);
+  if (t.deadline) metaParts.push(`<span>Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>`);
   if (t.done && t.completedAt) metaParts.push(`<span>Concluída em ${fmtDate(t.completedAt)}</span>`);
-  if (t.custom) metaParts.push(`<button class="btn-danger-text" data-del="${t.id}">Excluir</button>`);
 
   return `
     <li class="${cls.join(' ')}" data-id="${t.id}">
       <input type="checkbox" class="chk-done" data-id="${t.id}" ${t.done ? 'checked' : ''}>
       <div class="task-body">
         <div class="task-top">
+          <span class="disc-name">${t.disc}</span>
           <span class="badge type-${t.type}">${TYPE_META[t.type].short}</span>
           ${overdue ? '<span class="badge warn-overdue">⚠ Atrasada</span>' : ''}
           ${conflict ? '<span class="badge warn-conflict">⚠ Prazo ultrapassado</span>' : ''}
           ${early ? '<span class="badge warn-conflict">⚠ Planejada antes de abrir</span>' : ''}
-          ${today ? '<span class="badge warn-today">📅 Hoje</span>' : ''}
         </div>
         <div class="task-title">${t.title}</div>
         <div class="task-meta">${metaParts.join('')}</div>
@@ -456,45 +436,20 @@ function taskRowHtml(t) {
   `;
 }
 
-function renderDiscList() {
-  const container = document.getElementById('discList');
+function renderDayPanel() {
+  const panel = document.getElementById('dayPanel');
+  const byDate = tasksByDate();
+  const tasks = (byDate[selectedDate] || []).sort((a,b) => a.title.localeCompare(b.title));
 
-  container.innerHTML = DISCIPLINES.map(disc => {
-    let tasks = DATA.tasks.filter(t => t.disc === disc);
-    if (filters.type) tasks = tasks.filter(t => t.type === filters.type);
-    tasks = orderedTasksForDisc(tasks);
+  panel.style.display = 'block';
+  document.getElementById('dayPanelTitle').textContent = `${fmtDate(selectedDate)}${selectedDate === todayStr() ? ' (hoje)' : ''}`;
 
-    const allTasks = DATA.tasks.filter(t => t.disc === disc);
-    const total = allTasks.length;
-    const done = allTasks.filter(t => t.done).length;
-    const pct = total ? Math.round((done/total)*100) : 0;
-    const todayCount = allTasks.filter(t => !t.done && isToday(t)).length;
-    const isOpen = expanded.has(disc);
+  const list = document.getElementById('dayTaskList');
+  list.innerHTML = tasks.length
+    ? tasks.map(taskRowHtml).join('')
+    : '<div class="empty">Nenhuma atividade planejada para esse dia.</div>';
 
-    return `
-      <div class="disc-card" data-disc="${disc}">
-        <div class="disc-head">
-          <div>
-            <h2>${disc}</h2>
-            <span class="count">${done}/${total} concluídas${todayCount ? `<span class="today-count">· ${todayCount} hoje</span>` : ''}</span>
-          </div>
-          <div class="disc-pct">${pct}%</div>
-        </div>
-        <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
-        <button class="btn-secondary toggle-btn" data-toggle="${disc}">${isOpen ? 'Ocultar tarefas ▴' : 'Ver tarefas ▾'}</button>
-        ${isOpen ? `<ul class="task-list">${tasks.length ? tasks.map(taskRowHtml).join('') : '<li style="color:var(--muted); font-size:13px; padding:8px;">Nenhuma tarefa com esse filtro.</li>'}</ul>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  container.querySelectorAll('[data-toggle]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const disc = e.target.dataset.toggle;
-      if (expanded.has(disc)) expanded.delete(disc); else expanded.add(disc);
-      renderDiscList();
-    });
-  });
-  container.querySelectorAll('.chk-done').forEach(cb => {
+  list.querySelectorAll('.chk-done').forEach(cb => {
     cb.addEventListener('change', e => {
       const id = e.target.dataset.id;
       const t = DATA.tasks.find(x => x.id === id);
@@ -502,24 +457,6 @@ function renderDiscList() {
       t.completedAt = e.target.checked ? todayStr() : null;
       saveData(DATA);
       renderAll();
-    });
-  });
-  container.querySelectorAll('.inp-planned').forEach(inp => {
-    inp.addEventListener('change', e => {
-      const id = e.target.dataset.id;
-      const t = DATA.tasks.find(x => x.id === id);
-      t.planned = e.target.value;
-      saveData(DATA);
-      renderAll();
-    });
-  });
-  container.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const id = e.target.dataset.del;
-      DATA.tasks = DATA.tasks.filter(x => x.id !== id);
-      saveData(DATA);
-      renderAll();
-      showToast('Tarefa excluída.');
     });
   });
 }
@@ -533,76 +470,31 @@ function renderSavedInfo() {
 
 function renderAll() {
   renderStats();
-  renderDiscList();
+  renderCalendar();
+  renderDayPanel();
   renderSavedInfo();
 }
 
 /* ---------- Ações ---------- */
-document.getElementById('filterType').addEventListener('change', e => { filters.type = e.target.value; renderDiscList(); });
-
-document.getElementById('btnToggleForm').addEventListener('click', () => {
-  const form = document.getElementById('addForm');
-  form.classList.toggle('open');
-  if (form.classList.contains('open')) document.getElementById('f-planned').value = todayStr();
+document.getElementById('btnPrev').addEventListener('click', () => {
+  viewMonth--;
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCalendar();
 });
-document.getElementById('btnCancelTask').addEventListener('click', () => {
-  document.getElementById('addForm').classList.remove('open');
+document.getElementById('btnNext').addEventListener('click', () => {
+  viewMonth++;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderCalendar();
 });
-document.getElementById('f-type').addEventListener('change', e => {
-  const isAulaType = e.target.value === 'aula';
-  document.getElementById('aulaNote').style.display = isAulaType ? 'block' : 'none';
-  document.getElementById('dateFields').style.display = isAulaType ? 'none' : 'grid';
-});
-document.getElementById('btnSaveTask').addEventListener('click', () => {
-  const disc = document.getElementById('f-disc').value;
-  const type = document.getElementById('f-type').value;
-  const title = document.getElementById('f-title').value.trim();
-
-  if (!title) {
-    showToast('Preencha ao menos o título.');
-    return;
-  }
-
-  const id = `custom-${Math.random().toString(36).slice(2, 10)}`;
-
-  if (type === 'aula') {
-    const order = DATA.tasks.filter(t => t.disc === disc && isAula(t)).length + 1;
-    DATA.tasks.push({ id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: false, completedAt: null, custom: true });
-  } else {
-    const planned = document.getElementById('f-planned').value;
-    if (!planned) { showToast('Preencha a data planejada.'); return; }
-    const opens = document.getElementById('f-opens').value || null;
-    const deadline = document.getElementById('f-deadline').value || null;
-    DATA.tasks.push({ id, disc, title, type, order: null, opens, deadline, planned, originalPlanned: null, done: false, completedAt: null, custom: true });
-  }
-  saveData(DATA);
-
-  document.getElementById('f-title').value = '';
-  document.getElementById('f-opens').value = '';
-  document.getElementById('f-deadline').value = '';
-  document.getElementById('addForm').classList.remove('open');
-  expanded.add(disc);
-  renderAll();
-  showToast('Tarefa adicionada.');
-});
-
-document.getElementById('btnAdvance').addEventListener('click', () => {
-  DATA.tasks.forEach(t => { if (!t.done && t.planned) t.planned = addDays(t.planned, -1); });
-  saveData(DATA);
-  renderAll();
-  showToast('Datas planejadas adiantadas em 1 dia.');
-});
-
-document.getElementById('btnRestore').addEventListener('click', () => {
-  if (!confirm('Restaurar todas as datas planejadas para o plano original? Isso não afeta o status de concluído nem tarefas adicionadas manualmente.')) return;
-  DATA.tasks.forEach(t => { if (t.originalPlanned) t.planned = t.originalPlanned; });
-  saveData(DATA);
-  renderAll();
-  showToast('Plano original restaurado.');
+document.getElementById('btnTodayNav').addEventListener('click', () => {
+  viewYear = today.getFullYear();
+  viewMonth = today.getMonth();
+  selectedDate = todayStr();
+  renderCalendar();
+  renderDayPanel();
 });
 
 /* ---------- Init ---------- */
-populateSelects();
 renderAll();
 </script>
 </body>

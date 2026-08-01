@@ -101,8 +101,15 @@
   .add-form input, .add-form select {
     width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); font: inherit;
   }
+  .add-form .aula-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; background: var(--accent-light); padding: 8px 10px; border-radius: 8px; }
 
   ul.task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .disc-heading {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--accent); margin: 20px 0 8px; padding-top: 4px; border-top: 1px solid var(--border);
+  }
+  .disc-heading:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
   li.task {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
     padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px;
@@ -114,7 +121,6 @@
   li.task input[type=checkbox] { width: 18px; height: 18px; margin-top: 3px; flex-shrink: 0; cursor: pointer; }
   .task-body { flex: 1; min-width: 0; }
   .task-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .disc-name { font-size: 12px; color: var(--muted); font-weight: 600; }
   .task-title { font-weight: 600; font-size: 14px; }
   li.task.done .task-title { text-decoration: line-through; }
 
@@ -161,11 +167,12 @@
   <nav class="tabs">
     <a href="planejador_estudos.html" class="active">📋 Lista de Tarefas</a>
     <a href="disciplinas.html">📚 Por Disciplina</a>
+    <a href="calendario.html">🗓️ Calendário</a>
   </nav>
 
   <header class="top">
     <h1>Planejador de Estudos — Uninter</h1>
-    <p class="sub">Todas as tarefas, ordenadas por data planejada.</p>
+    <p class="sub">Agrupado por disciplina: aulas em sequência, depois as atividades por data.</p>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -196,6 +203,15 @@
         <label>Título</label>
         <input type="text" id="f-title" placeholder="Ex: Leitura do capítulo 3">
       </div>
+    </div>
+    <div class="aula-note" id="aulaNote" style="display:none;">
+      Aulas não têm data — esta será adicionada como a próxima da sequência da disciplina.
+    </div>
+    <div class="grid" id="dateFields">
+      <div>
+        <label>Abre em (opcional)</label>
+        <input type="date" id="f-opens">
+      </div>
       <div>
         <label>Data planejada</label>
         <input type="date" id="f-planned">
@@ -218,7 +234,7 @@
 
 <script>
 /* ---------- Constantes e dados ---------- */
-const STORAGE_KEY = 'uninterPlanner:v1';
+const STORAGE_KEY = 'uninterPlanner:v2';
 
 const DISCIPLINES = [
   'Comportamento Empreendedor',
@@ -238,66 +254,80 @@ const TYPE_META = {
   'trabalho':    { label: 'Trabalho/Pago',     short: 'Trabalho' }
 };
 
-function mk(id, disc, title, type, planned, deadline, done) {
-  return { id, disc, title, type, planned, deadline: deadline || null, done: !!done, originalPlanned: planned, custom: false };
+function isAula(t) { return t.type === 'aula'; }
+
+function mkAula(id, disc, title, order, done) {
+  return { id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: !!done, completedAt: null, custom: false };
+}
+function mkActivity(id, disc, title, type, opens, planned, deadline, done) {
+  return { id, disc, title, type, order: null, opens: opens || null, deadline: deadline || null, planned, originalPlanned: planned, done: !!done, completedAt: null, custom: false };
 }
 
-// Dados iniciais de exemplo — inclui um item atrasado, um em conflito de prazo
-// e um já concluído, só para demonstrar os avisos visuais.
+// Dados iniciais de exemplo.
+// Comportamento Empreendedor: datas reais conferidas na tela de Avaliações da Uninter.
+// Demais disciplinas: aberturas estimadas (mesmo padrão de janela da Uninter) — ajuste quando
+// tiver os prints reais. Um item de exemplo (Design de Serviço) fica de propósito com a data
+// planejada depois do prazo, só para mostrar o aviso de "prazo ultrapassado" funcionando.
 function buildSeed() {
   const seed = [
-    mk('ce-aula-1', DISCIPLINES[0], 'Aula 1', 'aula', '2026-07-25', null, true),
-    mk('ce-aula-2', DISCIPLINES[0], 'Aula 2', 'aula', '2026-08-01', null, false),
-    mk('ce-aula-3', DISCIPLINES[0], 'Aula 3', 'aula', '2026-08-08', null, false),
-    mk('ce-aula-4', DISCIPLINES[0], 'Aula 4', 'aula', '2026-08-15', null, false),
-    mk('ce-aula-5', DISCIPLINES[0], 'Aula 5', 'aula', '2026-08-22', null, false),
-    mk('ce-aula-6', DISCIPLINES[0], 'Aula 6', 'aula', '2026-08-29', null, false),
-    mk('ce-apol-obj-1', DISCIPLINES[0], 'APOL Objetiva 1', 'apol', '2026-08-20', '2026-08-24', false),
-    mk('ce-apol-obj-2', DISCIPLINES[0], 'APOL Objetiva 2', 'apol', '2026-08-21', '2026-08-24', false),
-    mk('ce-exercicio-disc', DISCIPLINES[0], 'Exercício Discursiva', 'apol-disc', '2026-09-10', '2026-09-14', false),
-    mk('ce-prova-obj', DISCIPLINES[0], 'Prova Objetiva', 'prova-obj', '2026-09-12', '2026-09-14', false),
-    mk('ce-prova-disc', DISCIPLINES[0], 'Prova Discursiva', 'prova-disc', '2026-09-13', '2026-09-14', false),
+    // Comportamento Empreendedor
+    mkAula('ce-aula-1', DISCIPLINES[0], 'Aula 1', 1, true),
+    mkAula('ce-aula-2', DISCIPLINES[0], 'Aula 2', 2, false),
+    mkAula('ce-aula-3', DISCIPLINES[0], 'Aula 3', 3, false),
+    mkAula('ce-aula-4', DISCIPLINES[0], 'Aula 4', 4, false),
+    mkAula('ce-aula-5', DISCIPLINES[0], 'Aula 5', 5, false),
+    mkAula('ce-aula-6', DISCIPLINES[0], 'Aula 6', 6, false),
+    mkActivity('ce-apol-obj-1', DISCIPLINES[0], 'APOL Objetiva 1', 'apol', '2026-07-13', '2026-08-20', '2026-08-24', false),
+    mkActivity('ce-apol-obj-2', DISCIPLINES[0], 'APOL Objetiva 2', 'apol', '2026-08-03', '2026-08-21', '2026-08-24', false),
+    mkActivity('ce-exercicio-disc', DISCIPLINES[0], 'Exercício Discursiva', 'apol-disc', '2026-07-13', '2026-09-10', '2026-09-14', false),
+    mkActivity('ce-prova-obj', DISCIPLINES[0], 'Prova Objetiva', 'prova-obj', '2026-08-24', '2026-09-12', '2026-09-14', false),
+    mkActivity('ce-prova-disc', DISCIPLINES[0], 'Prova Discursiva', 'prova-disc', '2026-08-24', '2026-09-13', '2026-09-14', false),
 
-    mk('dcs-aula-1', DISCIPLINES[1], 'Aula 1', 'aula', '2026-08-02', null, false),
-    mk('dcs-aula-2', DISCIPLINES[1], 'Aula 2', 'aula', '2026-08-09', null, false),
-    mk('dcs-aula-3', DISCIPLINES[1], 'Aula 3', 'aula', '2026-08-16', null, false),
-    mk('dcs-aula-4', DISCIPLINES[1], 'Aula 4', 'aula', '2026-08-23', null, false),
-    mk('dcs-apol-obj', DISCIPLINES[1], 'APOL Objetiva', 'apol', '2026-08-28', '2026-08-30', false),
-    mk('dcs-apol-disc', DISCIPLINES[1], 'APOL Discursiva', 'apol-disc', '2026-08-29', '2026-08-30', false),
-    mk('dcs-prova-obj', DISCIPLINES[1], 'Prova Objetiva', 'prova-obj', '2026-09-20', '2026-09-25', false),
-    mk('dcs-prova-disc', DISCIPLINES[1], 'Prova Discursiva', 'prova-disc', '2026-09-21', '2026-09-25', false),
+    // Design Cultura e Sociedade
+    mkAula('dcs-aula-1', DISCIPLINES[1], 'Aula 1', 1, false),
+    mkAula('dcs-aula-2', DISCIPLINES[1], 'Aula 2', 2, false),
+    mkAula('dcs-aula-3', DISCIPLINES[1], 'Aula 3', 3, false),
+    mkAula('dcs-aula-4', DISCIPLINES[1], 'Aula 4', 4, false),
+    mkActivity('dcs-apol-obj', DISCIPLINES[1], 'APOL Objetiva', 'apol', '2026-07-19', '2026-08-28', '2026-08-30', false),
+    mkActivity('dcs-apol-disc', DISCIPLINES[1], 'APOL Discursiva', 'apol-disc', '2026-07-19', '2026-08-29', '2026-08-30', false),
+    mkActivity('dcs-prova-obj', DISCIPLINES[1], 'Prova Objetiva', 'prova-obj', '2026-08-30', '2026-09-20', '2026-09-25', false),
+    mkActivity('dcs-prova-disc', DISCIPLINES[1], 'Prova Discursiva', 'prova-disc', '2026-08-30', '2026-09-21', '2026-09-25', false),
 
-    mk('ds-aula-1', DISCIPLINES[2], 'Aula 1', 'aula', '2026-08-04', null, false),
-    mk('ds-aula-2', DISCIPLINES[2], 'Aula 2', 'aula', '2026-08-11', null, false),
-    mk('ds-aula-3', DISCIPLINES[2], 'Aula 3', 'aula', '2026-08-18', null, false),
-    mk('ds-aula-4', DISCIPLINES[2], 'Aula 4', 'aula', '2026-08-25', null, false),
-    mk('ds-apol-obj', DISCIPLINES[2], 'APOL Objetiva', 'apol', '2026-09-01', '2026-09-03', false),
-    mk('ds-apol-disc', DISCIPLINES[2], 'APOL Discursiva', 'apol-disc', '2026-09-05', '2026-09-03', false),
-    mk('ds-prova-obj', DISCIPLINES[2], 'Prova Objetiva', 'prova-obj', '2026-09-28', '2026-10-02', false),
-    mk('ds-prova-disc', DISCIPLINES[2], 'Prova Discursiva', 'prova-disc', '2026-09-29', '2026-10-02', false),
+    // Design de Serviço
+    mkAula('ds-aula-1', DISCIPLINES[2], 'Aula 1', 1, false),
+    mkAula('ds-aula-2', DISCIPLINES[2], 'Aula 2', 2, false),
+    mkAula('ds-aula-3', DISCIPLINES[2], 'Aula 3', 3, false),
+    mkAula('ds-aula-4', DISCIPLINES[2], 'Aula 4', 4, false),
+    mkActivity('ds-apol-obj', DISCIPLINES[2], 'APOL Objetiva', 'apol', '2026-07-23', '2026-09-01', '2026-09-03', false),
+    mkActivity('ds-apol-disc', DISCIPLINES[2], 'APOL Discursiva', 'apol-disc', '2026-07-23', '2026-09-05', '2026-09-03', false),
+    mkActivity('ds-prova-obj', DISCIPLINES[2], 'Prova Objetiva', 'prova-obj', '2026-09-03', '2026-09-28', '2026-10-02', false),
+    mkActivity('ds-prova-disc', DISCIPLINES[2], 'Prova Discursiva', 'prova-disc', '2026-09-03', '2026-09-29', '2026-10-02', false),
 
-    mk('pdt-aula-1', DISCIPLINES[3], 'Aula 1', 'aula', '2026-08-05', null, false),
-    mk('pdt-aula-2', DISCIPLINES[3], 'Aula 2', 'aula', '2026-08-12', null, false),
-    mk('pdt-aula-3', DISCIPLINES[3], 'Aula 3', 'aula', '2026-08-19', null, false),
-    mk('pdt-aula-4', DISCIPLINES[3], 'Aula 4', 'aula', '2026-08-26', null, false),
-    mk('pdt-apol-obj', DISCIPLINES[3], 'APOL Objetiva', 'apol', '2026-09-02', '2026-09-05', false),
-    mk('pdt-apol-disc', DISCIPLINES[3], 'APOL Discursiva', 'apol-disc', '2026-09-03', '2026-09-05', false),
-    mk('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-10-05', '2026-10-10', false),
-    mk('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-10-06', '2026-10-10', false),
+    // Processos do Design Thinking
+    mkAula('pdt-aula-1', DISCIPLINES[3], 'Aula 1', 1, false),
+    mkAula('pdt-aula-2', DISCIPLINES[3], 'Aula 2', 2, false),
+    mkAula('pdt-aula-3', DISCIPLINES[3], 'Aula 3', 3, false),
+    mkAula('pdt-aula-4', DISCIPLINES[3], 'Aula 4', 4, false),
+    mkActivity('pdt-apol-obj', DISCIPLINES[3], 'APOL Objetiva', 'apol', '2026-07-25', '2026-09-02', '2026-09-05', false),
+    mkActivity('pdt-apol-disc', DISCIPLINES[3], 'APOL Discursiva', 'apol-disc', '2026-07-25', '2026-09-03', '2026-09-05', false),
+    mkActivity('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-09-05', '2026-10-05', '2026-10-10', false),
+    mkActivity('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-09-05', '2026-10-06', '2026-10-10', false),
 
-    mk('tc-aula-1', DISCIPLINES[4], 'Aula 1', 'aula', '2026-08-07', null, false),
-    mk('tc-aula-2', DISCIPLINES[4], 'Aula 2', 'aula', '2026-08-14', null, false),
-    mk('tc-aula-3', DISCIPLINES[4], 'Aula 3', 'aula', '2026-08-21', null, false),
-    mk('tc-aula-4', DISCIPLINES[4], 'Aula 4', 'aula', '2026-08-28', null, false),
-    mk('tc-apol-obj', DISCIPLINES[4], 'APOL Objetiva', 'apol', '2026-09-04', '2026-09-08', false),
-    mk('tc-apol-disc', DISCIPLINES[4], 'APOL Discursiva', 'apol-disc', '2026-09-05', '2026-09-08', false),
-    mk('tc-prova-obj', DISCIPLINES[4], 'Prova Objetiva', 'prova-obj', '2026-10-12', '2026-10-17', false),
-    mk('tc-prova-disc', DISCIPLINES[4], 'Prova Discursiva', 'prova-disc', '2026-10-13', '2026-10-17', false),
+    // Teoria da Cor
+    mkAula('tc-aula-1', DISCIPLINES[4], 'Aula 1', 1, false),
+    mkAula('tc-aula-2', DISCIPLINES[4], 'Aula 2', 2, false),
+    mkAula('tc-aula-3', DISCIPLINES[4], 'Aula 3', 3, false),
+    mkAula('tc-aula-4', DISCIPLINES[4], 'Aula 4', 4, false),
+    mkActivity('tc-apol-obj', DISCIPLINES[4], 'APOL Objetiva', 'apol', '2026-07-28', '2026-09-04', '2026-09-08', false),
+    mkActivity('tc-apol-disc', DISCIPLINES[4], 'APOL Discursiva', 'apol-disc', '2026-07-28', '2026-09-05', '2026-09-08', false),
+    mkActivity('tc-prova-obj', DISCIPLINES[4], 'Prova Objetiva', 'prova-obj', '2026-09-08', '2026-10-12', '2026-10-17', false),
+    mkActivity('tc-prova-disc', DISCIPLINES[4], 'Prova Discursiva', 'prova-disc', '2026-09-08', '2026-10-13', '2026-10-17', false),
 
-    mk('ae-trab-1', DISCIPLINES[5], 'Certificado de curso 1', 'trabalho', '2026-08-15', '2026-11-30', false),
-    mk('ae-trab-2', DISCIPLINES[5], 'Certificado de curso 2', 'trabalho', '2026-09-15', '2026-11-30', false),
-    mk('ae-trab-3', DISCIPLINES[5], 'Relatório de atividades', 'trabalho', '2026-10-15', '2026-11-30', false),
-    mk('ae-trab-4', DISCIPLINES[5], 'Envio final da carga horária', 'trabalho', '2026-11-20', '2026-11-30', false)
+    // Atividades Extensionistas (sem aulas — só entregas)
+    mkActivity('ae-trab-1', DISCIPLINES[5], 'Certificado de curso 1', 'trabalho', '2026-07-13', '2026-08-15', '2026-11-30', false),
+    mkActivity('ae-trab-2', DISCIPLINES[5], 'Certificado de curso 2', 'trabalho', '2026-07-13', '2026-09-15', '2026-11-30', false),
+    mkActivity('ae-trab-3', DISCIPLINES[5], 'Relatório de atividades', 'trabalho', '2026-07-13', '2026-10-15', '2026-11-30', false),
+    mkActivity('ae-trab-4', DISCIPLINES[5], 'Envio final da carga horária', 'trabalho', '2026-07-13', '2026-11-20', '2026-11-30', false)
   ];
   return seed;
 }
@@ -341,9 +371,10 @@ let DATA = loadData();
 
 /* ---------- Regras derivadas ---------- */
 function effectiveDate(t) { return t.deadline || t.planned; }
-function isOverdue(t) { return !t.done && effectiveDate(t) < todayStr(); }
-function hasConflict(t) { return !!t.deadline && t.planned > t.deadline; }
-function isToday(t) { return t.planned === todayStr(); }
+function isOverdue(t) { return !isAula(t) && !t.done && !!effectiveDate(t) && effectiveDate(t) < todayStr(); }
+function hasConflict(t) { return !isAula(t) && !!t.deadline && !!t.planned && t.planned > t.deadline; }
+function hasEarlyConflict(t) { return !isAula(t) && !!t.opens && !!t.planned && t.planned < t.opens; }
+function isToday(t) { return !isAula(t) && t.planned === todayStr(); }
 function daysLeftLabel(t) {
   const n = daysBetween(todayStr(), effectiveDate(t));
   if (n === 0) return { text: 'hoje', cls: 'zero' };
@@ -384,6 +415,13 @@ function populateSelects() {
   formType.innerHTML = Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
 }
 
+/* ---------- Ordenação: aulas em sequência, depois atividades por data ---------- */
+function orderedTasksForDisc(tasks) {
+  const aulas = tasks.filter(isAula).sort((a,b) => a.order - b.order);
+  const activities = tasks.filter(t => !isAula(t)).sort((a,b) => (a.planned || '').localeCompare(b.planned || ''));
+  return [...aulas, ...activities];
+}
+
 /* ---------- Render ---------- */
 function renderStats() {
   const total = DATA.tasks.length;
@@ -420,10 +458,49 @@ function renderStats() {
   }
 }
 
+function taskRowHtml(t) {
+  const overdue = isOverdue(t);
+  const conflict = hasConflict(t);
+  const early = hasEarlyConflict(t);
+  const today = !t.done && isToday(t);
+  const cls = ['task'];
+  if (t.done) cls.push('done');
+  else if (overdue) cls.push('overdue');
+  else if (conflict || early) cls.push('conflict');
+
+  const metaParts = [];
+  if (!isAula(t)) {
+    if (t.opens) metaParts.push(`<span class="field">Abre: ${fmtDate(t.opens)}</span>`);
+    metaParts.push(`<span class="field">Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>`);
+    if (t.deadline) metaParts.push(`<span class="field">Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>`);
+    const dl = daysLeftLabel(t);
+    metaParts.push(`<span class="field days-left ${dl.cls}">${dl.text}</span>`);
+  }
+  if (t.done && t.completedAt) metaParts.push(`<span class="field">Concluída em ${fmtDate(t.completedAt)}</span>`);
+  if (t.custom) metaParts.push(`<button class="btn-danger-text" data-del="${t.id}">Excluir</button>`);
+
+  return `
+    <li class="${cls.join(' ')}" data-id="${t.id}">
+      <input type="checkbox" class="chk-done" data-id="${t.id}" ${t.done ? 'checked' : ''}>
+      <div class="task-body">
+        <div class="task-top">
+          <span class="badge type-${t.type}">${TYPE_META[t.type].short}</span>
+          ${overdue ? '<span class="badge warn-overdue">⚠ Atrasada</span>' : ''}
+          ${conflict ? '<span class="badge warn-conflict">⚠ Prazo ultrapassado</span>' : ''}
+          ${early ? '<span class="badge warn-conflict">⚠ Planejada antes de abrir</span>' : ''}
+          ${today ? '<span class="badge warn-today">📅 Hoje</span>' : ''}
+        </div>
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">${metaParts.join('')}</div>
+      </div>
+    </li>
+  `;
+}
+
 function renderList() {
   const list = document.getElementById('taskList');
-  let tasks = [...DATA.tasks].sort((a,b) => a.planned.localeCompare(b.planned));
 
+  let tasks = [...DATA.tasks];
   if (filters.disc) tasks = tasks.filter(t => t.disc === filters.disc);
   if (filters.type) tasks = tasks.filter(t => t.type === filters.type);
   if (filters.onlyToday) tasks = tasks.filter(t => !t.done && isToday(t));
@@ -433,44 +510,22 @@ function renderList() {
     return;
   }
 
-  list.innerHTML = tasks.map(t => {
-    const overdue = isOverdue(t);
-    const conflict = hasConflict(t);
-    const today = !t.done && isToday(t);
-    const dl = daysLeftLabel(t);
-    const cls = ['task'];
-    if (t.done) cls.push('done');
-    else if (overdue) cls.push('overdue');
-    else if (conflict) cls.push('conflict');
-
-    return `
-      <li class="${cls.join(' ')}" data-id="${t.id}">
-        <input type="checkbox" class="chk-done" data-id="${t.id}" ${t.done ? 'checked' : ''}>
-        <div class="task-body">
-          <div class="task-top">
-            <span class="disc-name">${t.disc}</span>
-            <span class="badge type-${t.type}">${TYPE_META[t.type].short}</span>
-            ${overdue ? '<span class="badge warn-overdue">⚠ Atrasada</span>' : ''}
-            ${conflict ? '<span class="badge warn-conflict">⚠ Prazo ultrapassado</span>' : ''}
-            ${today ? '<span class="badge warn-today">📅 Hoje</span>' : ''}
-          </div>
-          <div class="task-title">${t.title}</div>
-          <div class="task-meta">
-            <span class="field">Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>
-            ${t.deadline ? `<span class="field">Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>` : ''}
-            <span class="field days-left ${dl.cls}">${dl.text}</span>
-            ${t.custom ? `<button class="btn-danger-text" data-del="${t.id}">Excluir</button>` : ''}
-          </div>
-        </div>
-      </li>
-    `;
-  }).join('');
+  const discsToShow = filters.disc ? [filters.disc] : DISCIPLINES;
+  let html = '';
+  discsToShow.forEach(disc => {
+    const discTasks = orderedTasksForDisc(tasks.filter(t => t.disc === disc));
+    if (discTasks.length === 0) return;
+    html += `<div class="disc-heading">${disc}</div>`;
+    html += discTasks.map(taskRowHtml).join('');
+  });
+  list.innerHTML = html || '<div class="empty">Nenhuma tarefa encontrada com esses filtros.</div>';
 
   list.querySelectorAll('.chk-done').forEach(cb => {
     cb.addEventListener('change', e => {
       const id = e.target.dataset.id;
       const t = DATA.tasks.find(x => x.id === id);
       t.done = e.target.checked;
+      t.completedAt = e.target.checked ? todayStr() : null;
       saveData(DATA);
       renderAll();
     });
@@ -521,23 +576,37 @@ document.getElementById('btnToggleForm').addEventListener('click', () => {
 document.getElementById('btnCancelTask').addEventListener('click', () => {
   document.getElementById('addForm').classList.remove('open');
 });
+document.getElementById('f-type').addEventListener('change', e => {
+  const isAulaType = e.target.value === 'aula';
+  document.getElementById('aulaNote').style.display = isAulaType ? 'block' : 'none';
+  document.getElementById('dateFields').style.display = isAulaType ? 'none' : 'grid';
+});
 document.getElementById('btnSaveTask').addEventListener('click', () => {
   const disc = document.getElementById('f-disc').value;
   const type = document.getElementById('f-type').value;
   const title = document.getElementById('f-title').value.trim();
-  const planned = document.getElementById('f-planned').value;
-  const deadline = document.getElementById('f-deadline').value || null;
 
-  if (!title || !planned) {
-    showToast('Preencha ao menos título e data planejada.');
+  if (!title) {
+    showToast('Preencha ao menos o título.');
     return;
   }
 
   const id = `custom-${Math.random().toString(36).slice(2, 10)}`;
-  DATA.tasks.push({ id, disc, title, type, planned, deadline, done: false, originalPlanned: null, custom: true });
+
+  if (type === 'aula') {
+    const order = DATA.tasks.filter(t => t.disc === disc && isAula(t)).length + 1;
+    DATA.tasks.push({ id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: false, completedAt: null, custom: true });
+  } else {
+    const planned = document.getElementById('f-planned').value;
+    if (!planned) { showToast('Preencha a data planejada.'); return; }
+    const opens = document.getElementById('f-opens').value || null;
+    const deadline = document.getElementById('f-deadline').value || null;
+    DATA.tasks.push({ id, disc, title, type, order: null, opens, deadline, planned, originalPlanned: null, done: false, completedAt: null, custom: true });
+  }
   saveData(DATA);
 
   document.getElementById('f-title').value = '';
+  document.getElementById('f-opens').value = '';
   document.getElementById('f-deadline').value = '';
   document.getElementById('addForm').classList.remove('open');
   renderAll();
@@ -545,7 +614,7 @@ document.getElementById('btnSaveTask').addEventListener('click', () => {
 });
 
 document.getElementById('btnAdvance').addEventListener('click', () => {
-  DATA.tasks.forEach(t => { if (!t.done) t.planned = addDays(t.planned, -1); });
+  DATA.tasks.forEach(t => { if (!t.done && t.planned) t.planned = addDays(t.planned, -1); });
   saveData(DATA);
   renderAll();
   showToast('Datas planejadas adiantadas em 1 dia.');
