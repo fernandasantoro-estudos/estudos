@@ -328,8 +328,8 @@ function isAula(t) { return t.type === 'aula'; }
 function mkAula(id, disc, title, order, done) {
   return { id, disc, title, type: 'aula', order, opens: null, deadline: null, planned: null, originalPlanned: null, done: !!done, completedAt: null, custom: false };
 }
-function mkActivity(id, disc, title, type, opens, planned, deadline, done) {
-  return { id, disc, title, type, order: null, opens: opens || null, deadline: deadline || null, planned, originalPlanned: planned, done: !!done, completedAt: null, custom: false };
+function mkActivity(id, disc, title, type, opens, planned, deadline, done, completedAt) {
+  return { id, disc, title, type, order: null, opens: opens || null, deadline: deadline || null, planned, originalPlanned: planned, done: !!done, completedAt: completedAt || null, custom: false };
 }
 
 // Dados iniciais de exemplo.
@@ -378,10 +378,11 @@ function buildSeed() {
     mkAula('pdt-aula-2', DISCIPLINES[3], 'Aula 2', 2, false),
     mkAula('pdt-aula-3', DISCIPLINES[3], 'Aula 3', 3, false),
     mkAula('pdt-aula-4', DISCIPLINES[3], 'Aula 4', 4, false),
-    mkActivity('pdt-apol-obj', DISCIPLINES[3], 'APOL Objetiva', 'apol', '2026-07-25', '2026-09-02', '2026-09-05', false),
-    mkActivity('pdt-apol-disc', DISCIPLINES[3], 'APOL Discursiva', 'apol-disc', '2026-07-25', '2026-09-03', '2026-09-05', false),
-    mkActivity('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-09-05', '2026-10-05', '2026-10-10', false),
-    mkActivity('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-09-05', '2026-10-06', '2026-10-10', false),
+    mkActivity('pdt-apol-obj-1', DISCIPLINES[3], 'APOL Objetiva 1', 'apol', '2026-07-13', '2026-08-20', '2026-08-24', true, '2026-08-01'),
+    mkActivity('pdt-apol-obj-2', DISCIPLINES[3], 'APOL Objetiva 2', 'apol', '2026-08-03', '2026-08-21', '2026-08-24', false),
+    mkActivity('pdt-exercicio-disc', DISCIPLINES[3], 'Exercício Discursiva', 'apol-disc', '2026-07-13', '2026-09-10', '2026-09-14', true, '2026-08-01'),
+    mkActivity('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-08-24', '2026-09-12', '2026-09-14', false),
+    mkActivity('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-08-24', '2026-09-13', '2026-09-14', false),
 
     // Teoria da Cor
     mkAula('tc-aula-1', DISCIPLINES[4], 'Aula 1', 1, false),
