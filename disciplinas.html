@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planejador de Estudos — Por Disciplina</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #e2e5eb;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --amber: #92400e;
+    --amber-light: #fef3c7;
+    --indigo: #3730a3;
+    --indigo-light: #e0e7ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  nav.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  nav.tabs a {
+    flex: 1;
+    text-align: center;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  nav.tabs a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  header.top { margin-bottom: 20px; }
+  header.top h1 { font-size: 22px; margin: 0 0 4px; }
+  header.top p.sub { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; text-align: center;
+  }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stat.overdue .num { color: var(--red); }
+  .stat.today .num { color: var(--indigo); }
+  .stat.done .num { color: var(--green); }
+
+  .progress-outer { background: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 10px; }
+  .progress-inner { background: linear-gradient(90deg, var(--accent), #818cf8); height: 100%; transition: width .3s ease; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; margin-bottom: 16px;
+  }
+  .toolbar select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: 13px; }
+  .toolbar .spacer { flex: 1; }
+  button {
+    font: inherit; cursor: pointer; border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #f9fafb; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-danger-text { background: transparent; color: var(--red); padding: 4px 8px; font-size: 12px; }
+
+  .add-form {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px; display: none;
+  }
+  .add-form.open { display: block; }
+  .add-form .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .add-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .add-form input, .add-form select {
+    width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); font: inherit;
+  }
+
+  .disc-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .disc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .disc-head h2 { font-size: 16px; margin: 0 0 2px; }
+  .disc-head .count { font-size: 12px; color: var(--muted); }
+  .disc-head .today-count { font-size: 11px; color: var(--indigo); font-weight: 700; margin-left: 6px; }
+  .disc-pct { font-size: 20px; font-weight: 700; color: var(--accent); }
+
+  ul.task-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  li.task {
+    background: #fafafa; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; display: flex; align-items: flex-start; gap: 10px;
+  }
+  li.task.done { opacity: .55; }
+  li.task.overdue { border-color: #fca5a5; background: #fff5f5; }
+  li.task.conflict { border-color: #fcd34d; background: #fffbeb; }
+  li.task input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .task-title { font-weight: 600; font-size: 13px; }
+  li.task.done .task-title { text-decoration: line-through; }
+  .task-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 11px; color: var(--muted); }
+  .task-meta input[type=date] { padding: 2px 5px; border-radius: 6px; border: 1px solid var(--border); font: inherit; font-size: 11px; }
+  .days-left { font-weight: 700; }
+  .days-left.neg { color: var(--red); }
+  .days-left.zero { color: var(--indigo); }
+
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge.type-aula { background: #f1f5f9; color: #475569; }
+  .badge.type-apol { background: #dbeafe; color: #1d4ed8; }
+  .badge.type-apol-disc { background: #ede9fe; color: #6d28d9; }
+  .badge.type-prova-obj { background: #fee2e2; color: #b91c1c; }
+  .badge.type-prova-disc { background: #ffe4e6; color: #9f1239; }
+  .badge.type-trabalho { background: #d1fae5; color: #047857; }
+  .badge.warn-overdue { background: var(--red-light); color: var(--red); }
+  .badge.warn-conflict { background: var(--amber-light); color: var(--amber); }
+  .badge.warn-today { background: var(--indigo-light); color: var(--indigo); }
+
+  .toggle-btn { margin-top: 10px; }
+  footer.saved { text-align: center; color: var(--muted); font-size: 11px; margin-top: 24px; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1f2430; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: all .25s ease; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="tabs">
+    <a href="planejador_estudos.html">📋 Lista de Tarefas</a>
+    <a href="disciplinas.html" class="active">📚 Por Disciplina</a>
+  </nav>
+
+  <header class="top">
+    <h1>Planejador de Estudos — Uninter</h1>
+    <p class="sub">Progresso agrupado por disciplina.</p>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <select id="filterType"></select>
+    <div class="spacer"></div>
+    <button class="btn-secondary" id="btnToggleForm">+ Adicionar tarefa</button>
+    <button class="btn-secondary" id="btnAdvance">Adiantar tudo 1 dia</button>
+    <button class="btn-secondary" id="btnRestore">Restaurar plano original</button>
+  </div>
+
+  <div class="add-form" id="addForm">
+    <div class="grid">
+      <div>
+        <label>Disciplina</label>
+        <select id="f-disc"></select>
+      </div>
+      <div>
+        <label>Tipo</label>
+        <select id="f-type"></select>
+      </div>
+      <div>
+        <label>Título</label>
+        <input type="text" id="f-title" placeholder="Ex: Leitura do capítulo 3">
+      </div>
+      <div>
+        <label>Data planejada</label>
+        <input type="date" id="f-planned">
+      </div>
+      <div>
+        <label>Prazo real (opcional)</label>
+        <input type="date" id="f-deadline">
+      </div>
+    </div>
+    <button class="btn-primary" id="btnSaveTask">Salvar tarefa</button>
+    <button class="btn-secondary" id="btnCancelTask">Cancelar</button>
+  </div>
+
+  <div id="discList"></div>
+
+  <footer class="saved" id="savedInfo"></footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Constantes e dados (mesmo modelo do planejador_estudos.html) ---------- */
+const STORAGE_KEY = 'uninterPlanner:v1';
+
+const DISCIPLINES = [
+  'Comportamento Empreendedor',
+  'Design Cultura e Sociedade',
+  'Design de Serviço',
+  'Processos do Design Thinking',
+  'Teoria da Cor',
+  'Atividades Extensionistas'
+];
+
+const TYPE_META = {
+  'aula':        { label: 'Aula',              short: 'Aula' },
+  'apol':        { label: 'Apol. Objetiva',    short: 'APOL Obj.' },
+  'apol-disc':   { label: 'Apol. Discursiva',  short: 'APOL Disc.' },
+  'prova-obj':   { label: 'Prova Objetiva',    short: 'Prova Obj.' },
+  'prova-disc':  { label: 'Prova Discursiva',  short: 'Prova Disc.' },
+  'trabalho':    { label: 'Trabalho/Pago',     short: 'Trabalho' }
+};
+
+function mk(id, disc, title, type, planned, deadline, done) {
+  return { id, disc, title, type, planned, deadline: deadline || null, done: !!done, originalPlanned: planned, custom: false };
+}
+
+function buildSeed() {
+  const seed = [
+    mk('ce-aula-1', DISCIPLINES[0], 'Aula 1', 'aula', '2026-07-25', null, true),
+    mk('ce-aula-2', DISCIPLINES[0], 'Aula 2', 'aula', '2026-07-30', null, false),
+    mk('ce-aula-3', DISCIPLINES[0], 'Aula 3', 'aula', '2026-08-06', null, false),
+    mk('ce-aula-4', DISCIPLINES[0], 'Aula 4', 'aula', '2026-08-13', null, false),
+    mk('ce-apol-obj', DISCIPLINES[0], 'APOL Objetiva', 'apol', '2026-08-18', '2026-08-20', false),
+    mk('ce-apol-disc', DISCIPLINES[0], 'APOL Discursiva', 'apol-disc', '2026-08-19', '2026-08-20', false),
+    mk('ce-prova-obj', DISCIPLINES[0], 'Prova Objetiva', 'prova-obj', '2026-09-10', '2026-09-15', false),
+    mk('ce-prova-disc', DISCIPLINES[0], 'Prova Discursiva', 'prova-disc', '2026-09-11', '2026-09-15', false),
+
+    mk('dcs-aula-1', DISCIPLINES[1], 'Aula 1', 'aula', '2026-08-02', null, false),
+    mk('dcs-aula-2', DISCIPLINES[1], 'Aula 2', 'aula', '2026-08-09', null, false),
+    mk('dcs-aula-3', DISCIPLINES[1], 'Aula 3', 'aula', '2026-08-16', null, false),
+    mk('dcs-aula-4', DISCIPLINES[1], 'Aula 4', 'aula', '2026-08-23', null, false),
+    mk('dcs-apol-obj', DISCIPLINES[1], 'APOL Objetiva', 'apol', '2026-08-28', '2026-08-30', false),
+    mk('dcs-apol-disc', DISCIPLINES[1], 'APOL Discursiva', 'apol-disc', '2026-08-29', '2026-08-30', false),
+    mk('dcs-prova-obj', DISCIPLINES[1], 'Prova Objetiva', 'prova-obj', '2026-09-20', '2026-09-25', false),
+    mk('dcs-prova-disc', DISCIPLINES[1], 'Prova Discursiva', 'prova-disc', '2026-09-21', '2026-09-25', false),
+
+    mk('ds-aula-1', DISCIPLINES[2], 'Aula 1', 'aula', '2026-08-04', null, false),
+    mk('ds-aula-2', DISCIPLINES[2], 'Aula 2', 'aula', '2026-08-11', null, false),
+    mk('ds-aula-3', DISCIPLINES[2], 'Aula 3', 'aula', '2026-08-18', null, false),
+    mk('ds-aula-4', DISCIPLINES[2], 'Aula 4', 'aula', '2026-08-25', null, false),
+    mk('ds-apol-obj', DISCIPLINES[2], 'APOL Objetiva', 'apol', '2026-09-01', '2026-09-03', false),
+    mk('ds-apol-disc', DISCIPLINES[2], 'APOL Discursiva', 'apol-disc', '2026-09-05', '2026-09-03', false),
+    mk('ds-prova-obj', DISCIPLINES[2], 'Prova Objetiva', 'prova-obj', '2026-09-28', '2026-10-02', false),
+    mk('ds-prova-disc', DISCIPLINES[2], 'Prova Discursiva', 'prova-disc', '2026-09-29', '2026-10-02', false),
+
+    mk('pdt-aula-1', DISCIPLINES[3], 'Aula 1', 'aula', '2026-08-05', null, false),
+    mk('pdt-aula-2', DISCIPLINES[3], 'Aula 2', 'aula', '2026-08-12', null, false),
+    mk('pdt-aula-3', DISCIPLINES[3], 'Aula 3', 'aula', '2026-08-19', null, false),
+    mk('pdt-aula-4', DISCIPLINES[3], 'Aula 4', 'aula', '2026-08-26', null, false),
+    mk('pdt-apol-obj', DISCIPLINES[3], 'APOL Objetiva', 'apol', '2026-09-02', '2026-09-05', false),
+    mk('pdt-apol-disc', DISCIPLINES[3], 'APOL Discursiva', 'apol-disc', '2026-09-03', '2026-09-05', false),
+    mk('pdt-prova-obj', DISCIPLINES[3], 'Prova Objetiva', 'prova-obj', '2026-10-05', '2026-10-10', false),
+    mk('pdt-prova-disc', DISCIPLINES[3], 'Prova Discursiva', 'prova-disc', '2026-10-06', '2026-10-10', false),
+
+    mk('tc-aula-1', DISCIPLINES[4], 'Aula 1', 'aula', '2026-08-07', null, false),
+    mk('tc-aula-2', DISCIPLINES[4], 'Aula 2', 'aula', '2026-08-14', null, false),
+    mk('tc-aula-3', DISCIPLINES[4], 'Aula 3', 'aula', '2026-08-21', null, false),
+    mk('tc-aula-4', DISCIPLINES[4], 'Aula 4', 'aula', '2026-08-28', null, false),
+    mk('tc-apol-obj', DISCIPLINES[4], 'APOL Objetiva', 'apol', '2026-09-04', '2026-09-08', false),
+    mk('tc-apol-disc', DISCIPLINES[4], 'APOL Discursiva', 'apol-disc', '2026-09-05', '2026-09-08', false),
+    mk('tc-prova-obj', DISCIPLINES[4], 'Prova Objetiva', 'prova-obj', '2026-10-12', '2026-10-17', false),
+    mk('tc-prova-disc', DISCIPLINES[4], 'Prova Discursiva', 'prova-disc', '2026-10-13', '2026-10-17', false),
+
+    mk('ae-trab-1', DISCIPLINES[5], 'Certificado de curso 1', 'trabalho', '2026-08-15', '2026-11-30', false),
+    mk('ae-trab-2', DISCIPLINES[5], 'Certificado de curso 2', 'trabalho', '2026-09-15', '2026-11-30', false),
+    mk('ae-trab-3', DISCIPLINES[5], 'Relatório de atividades', 'trabalho', '2026-10-15', '2026-11-30', false),
+    mk('ae-trab-4', DISCIPLINES[5], 'Envio final da carga horária', 'trabalho', '2026-11-20', '2026-11-30', false)
+  ];
+  return seed;
+}
+
+/* ---------- Utilitários de data ---------- */
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function addDays(dateStr, delta) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate() + delta);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function daysBetween(a, b) {
+  const [ay,am,ad] = a.split('-').map(Number);
+  const [by,bm,bd] = b.split('-').map(Number);
+  return Math.round((new Date(by,bm-1,bd) - new Date(ay,am-1,ad)) / 86400000);
+}
+
+/* ---------- Persistência (localStorage) ---------- */
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.tasks)) return parsed;
+    }
+  } catch (e) { /* dados corrompidos: recria a partir da seed */ }
+  const fresh = { tasks: buildSeed(), updatedAt: null };
+  saveData(fresh);
+  return fresh;
+}
+function saveData(data) {
+  data.updatedAt = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let DATA = loadData();
+
+/* ---------- Regras derivadas ---------- */
+function effectiveDate(t) { return t.deadline || t.planned; }
+function isOverdue(t) { return !t.done && effectiveDate(t) < todayStr(); }
+function hasConflict(t) { return !!t.deadline && t.planned > t.deadline; }
+function isToday(t) { return t.planned === todayStr(); }
+function daysLeftLabel(t) {
+  const n = daysBetween(todayStr(), effectiveDate(t));
+  if (n === 0) return { text: 'hoje', cls: 'zero' };
+  if (n < 0) return { text: `há ${Math.abs(n)}d`, cls: 'neg' };
+  return { text: `em ${n}d`, cls: '' };
+}
+function fmtDate(s) {
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ---------- Estado de UI (em memória) ---------- */
+const filters = { type: '' };
+const expanded = new Set();
+
+function populateSelects() {
+  const fType = document.getElementById('filterType');
+  fType.innerHTML = '<option value="">Todos os tipos</option>' +
+    Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+
+  const formDisc = document.getElementById('f-disc');
+  formDisc.innerHTML = DISCIPLINES.map(d => `<option value="${d}">${d}</option>`).join('');
+
+  const formType = document.getElementById('f-type');
+  formType.innerHTML = Object.entries(TYPE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+}
+
+/* ---------- Render ---------- */
+function renderStats() {
+  const total = DATA.tasks.length;
+  const done = DATA.tasks.filter(t => t.done).length;
+  const overdue = DATA.tasks.filter(isOverdue).length;
+  const today = DATA.tasks.filter(t => !t.done && isToday(t)).length;
+  const pct = total ? Math.round((done/total)*100) : 0;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat">
+      <div class="num">${pct}%</div>
+      <div class="label">Progresso geral</div>
+      <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+    </div>
+    <div class="stat done"><div class="num">${done}/${total}</div><div class="label">Concluídas</div></div>
+    <div class="stat overdue"><div class="num">${overdue}</div><div class="label">Atrasadas</div></div>
+    <div class="stat today"><div class="num">${today}</div><div class="label">Para hoje</div></div>
+  `;
+}
+
+function taskRowHtml(t) {
+  const overdue = isOverdue(t);
+  const conflict = hasConflict(t);
+  const today = !t.done && isToday(t);
+  const dl = daysLeftLabel(t);
+  const cls = ['task'];
+  if (t.done) cls.push('done');
+  else if (overdue) cls.push('overdue');
+  else if (conflict) cls.push('conflict');
+
+  return `
+    <li class="${cls.join(' ')}" data-id="${t.id}">
+      <input type="checkbox" class="chk-done" data-id="${t.id}" ${t.done ? 'checked' : ''}>
+      <div class="task-body">
+        <div class="task-top">
+          <span class="badge type-${t.type}">${TYPE_META[t.type].short}</span>
+          ${overdue ? '<span class="badge warn-overdue">⚠ Atrasada</span>' : ''}
+          ${conflict ? '<span class="badge warn-conflict">⚠ Prazo ultrapassado</span>' : ''}
+          ${today ? '<span class="badge warn-today">📅 Hoje</span>' : ''}
+        </div>
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">
+          <span>Planejada: <input type="date" class="inp-planned" data-id="${t.id}" value="${t.planned}"></span>
+          ${t.deadline ? `<span>Prazo real: <strong>${fmtDate(t.deadline)}</strong></span>` : ''}
+          <span class="days-left ${dl.cls}">${dl.text}</span>
+          ${t.custom ? `<button class="btn-danger-text" data-del="${t.id}">Excluir</button>` : ''}
+        </div>
+      </div>
+    </li>
+  `;
+}
+
+function renderDiscList() {
+  const container = document.getElementById('discList');
+
+  container.innerHTML = DISCIPLINES.map(disc => {
+    let tasks = DATA.tasks.filter(t => t.disc === disc);
+    if (filters.type) tasks = tasks.filter(t => t.type === filters.type);
+    tasks = [...tasks].sort((a,b) => a.planned.localeCompare(b.planned));
+
+    const allTasks = DATA.tasks.filter(t => t.disc === disc);
+    const total = allTasks.length;
+    const done = allTasks.filter(t => t.done).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    const todayCount = allTasks.filter(t => !t.done && isToday(t)).length;
+    const isOpen = expanded.has(disc);
+
+    return `
+      <div class="disc-card" data-disc="${disc}">
+        <div class="disc-head">
+          <div>
+            <h2>${disc}</h2>
+            <span class="count">${done}/${total} concluídas${todayCount ? `<span class="today-count">· ${todayCount} hoje</span>` : ''}</span>
+          </div>
+          <div class="disc-pct">${pct}%</div>
+        </div>
+        <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+        <button class="btn-secondary toggle-btn" data-toggle="${disc}">${isOpen ? 'Ocultar tarefas ▴' : 'Ver tarefas ▾'}</button>
+        ${isOpen ? `<ul class="task-list">${tasks.length ? tasks.map(taskRowHtml).join('') : '<li style="color:var(--muted); font-size:13px; padding:8px;">Nenhuma tarefa com esse filtro.</li>'}</ul>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const disc = e.target.dataset.toggle;
+      if (expanded.has(disc)) expanded.delete(disc); else expanded.add(disc);
+      renderDiscList();
+    });
+  });
+  container.querySelectorAll('.chk-done').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id = e.target.dataset.id;
+      const t = DATA.tasks.find(x => x.id === id);
+      t.done = e.target.checked;
+      saveData(DATA);
+      renderAll();
+    });
+  });
+  container.querySelectorAll('.inp-planned').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const id = e.target.dataset.id;
+      const t = DATA.tasks.find(x => x.id === id);
+      t.planned = e.target.value;
+      saveData(DATA);
+      renderAll();
+    });
+  });
+  container.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = e.target.dataset.del;
+      DATA.tasks = DATA.tasks.filter(x => x.id !== id);
+      saveData(DATA);
+      renderAll();
+      showToast('Tarefa excluída.');
+    });
+  });
+}
+
+function renderSavedInfo() {
+  const el = document.getElementById('savedInfo');
+  if (!DATA.updatedAt) { el.textContent = ''; return; }
+  const d = new Date(DATA.updatedAt);
+  el.textContent = `Última atualização: ${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`;
+}
+
+function renderAll() {
+  renderStats();
+  renderDiscList();
+  renderSavedInfo();
+}
+
+/* ---------- Ações ---------- */
+document.getElementById('filterType').addEventListener('change', e => { filters.type = e.target.value; renderDiscList(); });
+
+document.getElementById('btnToggleForm').addEventListener('click', () => {
+  const form = document.getElementById('addForm');
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) document.getElementById('f-planned').value = todayStr();
+});
+document.getElementById('btnCancelTask').addEventListener('click', () => {
+  document.getElementById('addForm').classList.remove('open');
+});
+document.getElementById('btnSaveTask').addEventListener('click', () => {
+  const disc = document.getElementById('f-disc').value;
+  const type = document.getElementById('f-type').value;
+  const title = document.getElementById('f-title').value.trim();
+  const planned = document.getElementById('f-planned').value;
+  const deadline = document.getElementById('f-deadline').value || null;
+
+  if (!title || !planned) {
+    showToast('Preencha ao menos título e data planejada.');
+    return;
+  }
+
+  const id = `custom-${Math.random().toString(36).slice(2, 10)}`;
+  DATA.tasks.push({ id, disc, title, type, planned, deadline, done: false, originalPlanned: null, custom: true });
+  saveData(DATA);
+
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-deadline').value = '';
+  document.getElementById('addForm').classList.remove('open');
+  expanded.add(disc);
+  renderAll();
+  showToast('Tarefa adicionada.');
+});
+
+document.getElementById('btnAdvance').addEventListener('click', () => {
+  DATA.tasks.forEach(t => { if (!t.done) t.planned = addDays(t.planned, -1); });
+  saveData(DATA);
+  renderAll();
+  showToast('Datas planejadas adiantadas em 1 dia.');
+});
+
+document.getElementById('btnRestore').addEventListener('click', () => {
+  if (!confirm('Restaurar todas as datas planejadas para o plano original? Isso não afeta o status de concluído nem tarefas adicionadas manualmente.')) return;
+  DATA.tasks.forEach(t => { if (t.originalPlanned) t.planned = t.originalPlanned; });
+  saveData(DATA);
+  renderAll();
+  showToast('Plano original restaurado.');
+});
+
+/* ---------- Init ---------- */
+populateSelects();
+renderAll();
+</script>
+</body>
+</html>
