@@ -311,6 +311,7 @@ const DISCIPLINES = [
   'Design de Serviço',
   'Processos do Design Thinking',
   'Teoria da Cor',
+  'Tipografia',
   'Atividades Extensionistas'
 ];
 
@@ -395,9 +396,19 @@ function buildSeed() {
     mkActivity('tc-prova-obj', DISCIPLINES[4], 'Prova Objetiva', 'prova-obj', '2026-08-24', '2026-09-12', '2026-09-14', false),
     mkActivity('tc-trabalho', DISCIPLINES[4], 'Atividade Prática Design', 'trabalho', '2026-08-17', '2026-09-01', '2026-09-14', false),
 
+    // Tipografia
+    mkAula('tipo-aula-1', DISCIPLINES[5], 'Aula 1', 1, false),
+    mkAula('tipo-aula-2', DISCIPLINES[5], 'Aula 2', 2, false),
+    mkAula('tipo-aula-3', DISCIPLINES[5], 'Aula 3', 3, false),
+    mkAula('tipo-aula-4', DISCIPLINES[5], 'Aula 4', 4, false),
+    mkActivity('tipo-apol-obj-1', DISCIPLINES[5], 'APOL Objetiva 1', 'apol', '2026-07-13', '2026-08-20', '2026-08-24', false),
+    mkActivity('tipo-apol-obj-2', DISCIPLINES[5], 'APOL Objetiva 2', 'apol', '2026-08-03', '2026-08-21', '2026-08-24', false),
+    mkActivity('tipo-prova-obj', DISCIPLINES[5], 'Prova Objetiva', 'prova-obj', '2026-08-24', '2026-09-12', '2026-09-14', false),
+    mkActivity('tipo-trabalho', DISCIPLINES[5], 'Atividade Prática Design', 'trabalho', '2026-08-17', '2026-09-01', '2026-09-14', false),
+
     // Atividades Extensionistas (sem aulas — só entregas)
-    mkActivity('ae-trab-1', DISCIPLINES[5], 'Planilha 1 - Perfil Empreendedor', 'trabalho', '2026-06-08', '2026-07-04', '2026-07-06', true, '2026-07-04'),
-    mkActivity('ae-trab-2', DISCIPLINES[5], 'Planilha 2 - Geração de Ideia de Negócios', 'trabalho', '2026-07-06', '2026-08-05', '2026-08-10', false)
+    mkActivity('ae-trab-1', DISCIPLINES[6], 'Planilha 1 - Perfil Empreendedor', 'trabalho', '2026-06-08', '2026-07-04', '2026-07-06', true, '2026-07-04'),
+    mkActivity('ae-trab-2', DISCIPLINES[6], 'Planilha 2 - Geração de Ideia de Negócios', 'trabalho', '2026-07-06', '2026-08-05', '2026-08-10', false)
   ];
 }
 
